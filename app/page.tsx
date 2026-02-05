@@ -13,6 +13,7 @@ import { ExtractionChecklist } from "@/components/deal-desk/extraction-checklist
 import { DefinitionBank } from "@/components/deal-desk/definition-bank"
 import { DefinitionExplainer } from "@/components/deal-desk/definition-explainer"
 import { ScopingCard } from "@/components/deal-desk/scoping-card"
+import { SmartDraftModal } from "@/components/deal-desk/smart-draft-modal"
 import { Scale, ChevronDown, Share2, Bell, Settings } from "lucide-react"
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
@@ -21,6 +22,7 @@ type AppState = 'empty' | 'processing' | 'active'
 
 export default function DealDeskPage() {
   const [appState, setAppState] = useState<AppState>('empty')
+  const [isDrafting, setIsDrafting] = useState(false)
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -41,6 +43,18 @@ export default function DealDeskPage() {
 
   function handleProcessingComplete() {
     setAppState('active')
+  }
+
+  function handleDraft() {
+    setIsDrafting(true)
+  }
+
+  function handleGenerate(data: any) {
+    console.log("Generating contract with:", data)
+    setIsDrafting(false)
+    setAppState('processing')
+    // Simulate processing time is handled by ProcessingView internally usually, 
+    // or we can let it run its course.
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -145,7 +159,7 @@ export default function DealDeskPage() {
             <ResizablePanel defaultSize={50} minSize={35}>
               <div className="h-full overflow-hidden pb-12 relative flex flex-col">
                 <div className="flex-1 overflow-hidden">
-                  {appState === 'empty' && <UploadZone onUpload={handleUpload} />}
+                  {appState === 'empty' && <UploadZone onUpload={handleUpload} onDraft={handleDraft} />}
                   {appState === 'processing' && <ProcessingView onComplete={handleProcessingComplete} />}
                   {appState === 'active' && <DocumentEditor />}
                 </div>
@@ -189,6 +203,13 @@ export default function DealDeskPage() {
           ) : null}
         </DragOverlay>
       </div>
+      {/* Smart Draft Modal */}
+      {isDrafting && (
+        <SmartDraftModal
+          onClose={() => setIsDrafting(false)}
+          onDraft={handleGenerate}
+        />
+      )}
     </DndContext>
   )
 }
