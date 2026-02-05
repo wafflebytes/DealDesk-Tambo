@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2 } from "lucide-react"
+import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2, Github } from "lucide-react"
 import { useTamboThread } from "@tambo-ai/react"
 import { RiskRadar } from "./risk-radar"
 import { ClauseTuner } from "./clause-tuner"
@@ -131,14 +131,32 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
       {/* Header - Sticky & Translucent - Maven Redesign (Compact) */}
       <div className="flex-none px-5 py-3 bg-transparent z-20 relative">
         <div className="flex items-center justify-between">
-          {/* Left: Hamburger Menu */}
-          <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
-            <div className="flex flex-col gap-0.5">
-              <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-              <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-              <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-            </div>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Left: Hamburger Menu */}
+            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
+              <div className="flex flex-col gap-0.5">
+                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
+                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
+                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
+              </div>
+            </button>
+
+            {/* GitHub Icon */}
+            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
+              <Github className="w-4 h-4" />
+            </button>
+
+            {/* Tambo Icon (Styled SVG) */}
+            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-emerald-600 hover:text-emerald-700 active:scale-95 transition-all">
+              <svg
+                viewBox="0 0 24 24"
+                className="w-4 h-4 fill-current"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" />
+              </svg>
+            </button>
+          </div>
 
           {/* Center: Maven Branding (Absolute Center) */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
