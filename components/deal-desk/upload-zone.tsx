@@ -1,19 +1,20 @@
 "use client"
 
-import { UploadCloud, FileText, ArrowUp } from "lucide-react"
+import { UploadCloud, FileText, ArrowUp, PenTool } from "lucide-react"
 
 interface UploadZoneProps {
     onUpload: () => void
+    onDraft?: () => void
 }
 
-export function UploadZone({ onUpload }: UploadZoneProps) {
+export function UploadZone({ onUpload, onDraft }: UploadZoneProps) {
     return (
         <div className="h-full flex items-center justify-center p-8">
             <div
                 onClick={onUpload}
-                className="w-full max-w-2xl aspect-[4/3] rounded-[2rem] border-4 border-dashed border-stone-300 bg-stone-50/30 hover:bg-[#20808D]/5 hover:border-[#20808D]/40 transition-all duration-500 cursor-pointer group flex flex-col items-center justify-center relative overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#20808D]/10"
+                className="w-full max-w-2xl aspect-[4/3] rounded-[2rem] border-4 border-dashed border-stone-300 bg-stone-50/30 hover:bg-[#20808D]/5 has-[button:hover]:bg-stone-50/30 hover:border-[#20808D]/40 has-[button:hover]:border-stone-300 transition-all duration-500 cursor-pointer group flex flex-col items-center justify-center relative overflow-hidden shadow-sm hover:shadow-xl has-[button:hover]:shadow-sm hover:shadow-[#20808D]/10 has-[button:hover]:shadow-none"
             >
-                <div className="absolute inset-0 bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:32px_32px] opacity-20 pointer-events-none group-hover:opacity-30 group-hover:bg-[radial-gradient(#20808D_1px,transparent_1px)] transition-all duration-500" />
+                <div className="absolute inset-0 bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:32px_32px] opacity-20 pointer-events-none group-hover:opacity-30 group-hover:bg-[radial-gradient(#20808D_1px,transparent_1px)] group-has-[button:hover]:opacity-20 group-has-[button:hover]:bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] transition-all duration-500" />
 
                 <div className="relative z-10 flex flex-col items-center text-center space-y-8">
                     <div className="w-32 h-32 rounded-3xl bg-white shadow-2xl flex items-center justify-center relative group-hover:scale-105 transition-transform duration-500 ring-8 ring-white">
@@ -33,15 +34,26 @@ export function UploadZone({ onUpload }: UploadZoneProps) {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-4 pt-4">
-                        <div className="px-5 py-2.5 rounded-xl bg-white/60 border border-stone-200 flex items-center gap-2.5 shadow-sm group-hover:border-[#20808D]/20 transition-colors">
-                            <FileText className="w-5 h-5 text-stone-500 group-hover:text-[#20808D] transition-colors" />
-                            <span className="text-xs uppercase tracking-wider font-bold text-stone-600">PDF</span>
-                        </div>
-                        <div className="px-5 py-2.5 rounded-xl bg-white/60 border border-stone-200 flex items-center gap-2.5 shadow-sm group-hover:border-[#20808D]/20 transition-colors">
-                            <FileText className="w-5 h-5 text-stone-500 group-hover:text-[#20808D] transition-colors" />
-                            <span className="text-xs uppercase tracking-wider font-bold text-stone-600">DOCX</span>
-                        </div>
+                    <div className="flex flex-col items-center gap-4 pt-4 animate-in fade-in slide-in-from-bottom-3 delay-100">
+                        {onDraft && (
+                            <>
+                                <span className="text-xs font-bold text-stone-400 uppercase tracking-widest">OR</span>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onDraft()
+                                    }}
+                                    className="px-6 py-3 rounded-xl bg-white border border-stone-200 shadow-[0_4px_0_0_#e7e5e4,0_2px_4px_rgba(0,0,0,0.1)] hover:translate-y-[2px] hover:shadow-[0_2px_0_0_#20808D,0_1px_2px_rgba(0,0,0,0.1)] hover:border-[#20808D]/40 active:translate-y-[4px] active:shadow-none transition-all flex items-center gap-2.5 group/btn relative z-20"
+                                >
+                                    <div className="w-8 h-8 rounded-lg bg-[#f4fafa] flex items-center justify-center group-hover/btn:bg-[#20808D]/10 transition-colors">
+                                        <PenTool className="w-4 h-4 text-[#20808D]" />
+                                    </div>
+                                    <div className="text-left">
+                                        <span className="block text-sm font-bold text-stone-700 group-hover/btn:text-[#0d3d43]">Draft with AI</span>
+                                    </div>
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
