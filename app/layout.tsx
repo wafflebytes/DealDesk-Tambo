@@ -1,18 +1,19 @@
 import React from "react"
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
+import { TamboWrapper } from "@/components/providers/tambo-wrapper"
 
 import './globals.css'
 
-const geist = Geist({ 
+const geist = Geist({
   subsets: ['latin'],
   variable: '--font-geist',
 })
-const geistMono = Geist_Mono({ 
+const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-geist-mono',
 })
-const instrumentSerif = Instrument_Serif({ 
+const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
   weight: '400',
   variable: '--font-instrument-serif',
@@ -31,7 +32,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} font-sans antialiased`}>{children}</body>
+      <body className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable} font-sans antialiased`}>
+        <TamboWrapper>
+          {children}
+        </TamboWrapper>
+      </body>
     </html>
   )
 }

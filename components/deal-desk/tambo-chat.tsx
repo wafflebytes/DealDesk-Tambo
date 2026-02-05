@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Bot, Send, BrainCircuit, Search, AlertTriangle, FileSearch, Mic, Paperclip } from "lucide-react"
+import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2, Github } from "lucide-react"
+import { useTamboThread } from "@tambo-ai/react"
 import { RiskRadar } from "./risk-radar"
 import { ClauseTuner } from "./clause-tuner"
 import { ScopingCard } from "./scoping-card"
@@ -9,26 +10,7 @@ import { ExtractionChecklist } from "./extraction-checklist"
 import { DefinitionBank } from "./definition-bank"
 import { DefinitionExplainer } from "./definition-explainer"
 import { DraggableGenUI } from "./draggable-gen-ui"
-
-interface ChatMessage {
-  type: "bot" | "component" | "user"
-  content?: string
-  component?: "risk-radar" | "clause-tuner" | "scoping" | "checklist" | "definitions" | "explainer"
-  data?: any
-}
-
-const initialMessages: ChatMessage[] = [
-  { type: "user", content: "Can you analyze the liability cap?" },
-  { type: "bot", content: "Would you like to adjust the liability cap? Use the tuner below." },
-  { type: "component", component: "clause-tuner" },
-  { type: "user", content: "What about the risks?" },
-  { type: "bot", content: "I've analyzed the contract. Risk level is elevated in liability provisions." },
-  { type: "component", component: "risk-radar" },
-  { type: "bot", content: "I've also extracted key obligations and defined terms for your review." },
-  { type: "component", component: "checklist" },
-  { type: "component", component: "definitions" },
-  { type: "component", component: "scoping" },
-]
+import { ReasoningChain, ReasoningStep } from "./reasoning-chain"
 
 const starterPrompts = [
   { icon: AlertTriangle, label: "Analyze Risk", color: "text-amber-600", bg: "bg-amber-50" },
@@ -36,11 +18,85 @@ const starterPrompts = [
   { icon: Search, label: "Summarize Deal", color: "text-emerald-600", bg: "bg-emerald-50" },
 ]
 
+// Helper to extract text content from message
+function getMessageContent(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) {
+    return content.map(part => {
+      if (typeof part === 'string') return part
+      if (part && typeof part === 'object' && 'text' in part) return (part as { text: string }).text
+      return ''
+    }).join('')
+  }
+  return ''
+}
+
 export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'active' }) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
-  const [showMessages] = useState(true)
+  // Tambo SDK Hooks
+  const { thread, sendThreadMessage, generationStage, isIdle } = useTamboThread()
+
+  // Local UI State
   const [inputValue, setInputValue] = useState("")
+  const [currentReasoning, setCurrentReasoning] = useState<ReasoningStep[]>([])
+  const [messageReasoningMap, setMessageReasoningMap] = useState<Record<string, ReasoningStep[]>>({})
+  const [pendingMessageId, setPendingMessageId] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Is the AI actively streaming a response?
+  const isStreaming = generationStage === 'STREAMING_RESPONSE'
+
+  // Determine if AI is "thinking" (before response starts streaming)
+  const isThinking = !isIdle &&
+    generationStage !== 'COMPLETE' &&
+    generationStage !== 'ERROR' &&
+    generationStage !== 'STREAMING_RESPONSE'
+
+  // Update reasoning chain based on generation stage
+  useEffect(() => {
+    if (generationStage === 'CHOOSING_COMPONENT') {
+      setCurrentReasoning([{ message: "Analyzing your request...", status: "processing" }])
+    } else if (generationStage === 'FETCHING_CONTEXT') {
+      setCurrentReasoning(prev => [
+        { ...prev[0], status: "complete" },
+        { message: "Gathering context...", status: "processing", tool: "ContextFetcher" }
+      ])
+    } else if (generationStage === 'HYDRATING_COMPONENT') {
+      setCurrentReasoning(prev => [
+        ...prev.map(s => ({ ...s, status: "complete" as const })),
+        { message: "Preparing response...", status: "processing" }
+      ])
+    } else if (generationStage === 'STREAMING_RESPONSE') {
+      // Mark all as complete but keep them for the message
+      setCurrentReasoning(prev => prev.map(s => ({ ...s, status: "complete" as const })))
+    } else if (generationStage === 'COMPLETE' || generationStage === 'IDLE') {
+      // Clear for next message cycle
+      setCurrentReasoning([])
+      setPendingMessageId(null)
+    }
+  }, [generationStage])
+
+  // Attach reasoning to the assistant message when streaming starts
+  useEffect(() => {
+    if (generationStage === 'STREAMING_RESPONSE' && thread?.messages && currentReasoning.length > 0) {
+      const lastMessage = thread.messages[thread.messages.length - 1]
+      if (lastMessage?.role === 'assistant' && lastMessage.id && pendingMessageId !== lastMessage.id) {
+        setPendingMessageId(lastMessage.id)
+        setMessageReasoningMap(prev => ({
+          ...prev,
+          [lastMessage.id!]: currentReasoning.map(s => ({ ...s, status: "complete" as const }))
+        }))
+      }
+    }
+  }, [generationStage, thread?.messages, currentReasoning, pendingMessageId])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [thread?.messages, isThinking, currentReasoning])
 
   const adjustHeight = () => {
     const textarea = textareaRef.current
@@ -55,36 +111,52 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
   }, [inputValue])
 
   const handleExplainDefinition = (term: string) => {
-    setMessages(prev => [
-      ...prev,
-      { type: "user", content: `Explain "${term}"` },
-      { type: "bot", content: `Here is a detailed breakdown of "${term}".` },
-      { type: "component", component: "explainer", data: term }
-    ])
+    sendThreadMessage(`Explain "${term}"`, { streamResponse: true })
   }
 
-  // ... (rest of component)
-
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return
-    setMessages(prev => [...prev, { type: "user", content: inputValue }])
+
+    const userMsg = inputValue
     setInputValue("")
-    // Height reset handled by useEffect on inputValue change
+
+    // Send message via Tambo SDK
+    await sendThreadMessage(userMsg, { streamResponse: true })
   }
+
+  const hasMessages = thread?.messages && thread.messages.length > 0
 
   return (
     <div className="flex flex-col h-full bg-gradient-to-b from-[#f4fafa] to-[#edf3f3]">
       {/* Header - Sticky & Translucent - Maven Redesign (Compact) */}
       <div className="flex-none px-5 py-3 bg-transparent z-20 relative">
         <div className="flex items-center justify-between">
-          {/* Left: Hamburger Menu */}
-          <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
-            <div className="flex flex-col gap-0.5">
-              <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-              <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-              <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-            </div>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Left: Hamburger Menu */}
+            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
+              <div className="flex flex-col gap-0.5">
+                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
+                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
+                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
+              </div>
+            </button>
+
+            {/* GitHub Icon */}
+            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
+              <Github className="w-4 h-4" />
+            </button>
+
+            {/* Tambo Icon (Styled SVG) */}
+            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-emerald-600 hover:text-emerald-700 active:scale-95 transition-all">
+              <svg
+                viewBox="0 0 24 24"
+                className="w-4 h-4 fill-current"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" />
+              </svg>
+            </button>
+          </div>
 
           {/* Center: Maven Branding (Absolute Center) */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
@@ -110,94 +182,74 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
       <div className="flex-1 overflow-y-auto min-h-0 px-5 py-12 scroll-smooth relative custom-scrollbar-teal">
         {/* Top Fade Mask */}
         <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#f4fafa] via-[#f4fafa]/80 to-transparent z-10 pointer-events-none" />
-        {showMessages ? (
+
+        {hasMessages ? (
           <div className="space-y-6 pb-4">
-            {messages.map((message, index) => {
-              if (message.type === "user") {
+            {/* Render Tambo Thread Messages */}
+            {thread?.messages?.map((message, index) => {
+              if (message.role === "user") {
                 return (
-                  <div key={index} className="flex justify-end animate-in fade-in slide-in-from-bottom-2">
+                  <div key={message.id || index} className="flex justify-end animate-in fade-in slide-in-from-bottom-2">
                     <div className="max-w-[80%] px-5 py-3 btn-skeu-dark rounded-2xl rounded-tr-sm text-sm leading-relaxed font-medium">
-                      {message.content}
+                      {getMessageContent(message.content)}
                     </div>
                   </div>
                 )
               }
 
-              if (message.type === "bot") {
+              if (message.role === "assistant") {
+                const content = getMessageContent(message.content)
+                const messageId = message.id || `msg-${index}`
+                // Get reasoning: either from map (completed) or current (if this is the streaming message)
+                const reasoning = messageReasoningMap[messageId] ||
+                  (isStreaming && index === (thread?.messages?.length || 0) - 1 ? currentReasoning : [])
+
                 return (
-                  <div key={index} className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2">
+                  <div key={messageId} className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 items-start">
                     <div className="w-8 h-8 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
                       <Bot className="w-4 h-4 text-stone-600" />
                     </div>
-                    <div className="px-5 py-3.5 rounded-2xl rounded-tl-none card-skeu text-sm text-stone-700 leading-relaxed max-w-[90%]">
-                      {message.content}
+
+                    <div className="flex flex-col gap-2 w-full max-w-[90%]">
+                      {/* Reasoning Chain - collapsed by default for completed messages */}
+                      {reasoning.length > 0 && (
+                        <ReasoningChain
+                          steps={reasoning}
+                          isThinking={isStreaming && index === (thread?.messages?.length || 0) - 1 && !content}
+                        />
+                      )}
+
+                      {/* Message Content */}
+                      <div className="px-5 py-3.5 rounded-2xl rounded-tl-none card-skeu text-sm text-stone-700 leading-relaxed">
+                        {content || (
+                          <span className="flex items-center gap-2 text-stone-400">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Generating response...
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              }
-
-              if (message.component === "risk-radar") {
-                return (
-                  <div key={index} className="pl-12 animate-in fade-in slide-in-from-bottom-4">
-                    <DraggableGenUI id={`risk-radar-${index}`}>
-                      <RiskRadar />
-                    </DraggableGenUI>
-                  </div>
-                )
-              }
-
-              if (message.component === "clause-tuner") {
-                return (
-                  <div key={index} className="pl-12 animate-in fade-in slide-in-from-bottom-4">
-                    <DraggableGenUI id={`clause-tuner-${index}`}>
-                      <ClauseTuner />
-                    </DraggableGenUI>
-                  </div>
-                )
-              }
-
-              if (message.component === "checklist") {
-                return (
-                  <div key={index} className="pl-12 animate-in fade-in slide-in-from-bottom-4">
-                    <DraggableGenUI id={`checklist-${index}`}>
-                      <ExtractionChecklist />
-                    </DraggableGenUI>
-                  </div>
-                )
-              }
-
-              if (message.component === "definitions") {
-                return (
-                  <div key={index} className="pl-12 animate-in fade-in slide-in-from-bottom-4">
-                    <DraggableGenUI id={`definitions-${index}`}>
-                      <DefinitionBank onExplain={handleExplainDefinition} />
-                    </DraggableGenUI>
-                  </div>
-                )
-              }
-
-              if (message.component === "explainer") {
-                return (
-                  <div key={index} className="pl-12 animate-in fade-in slide-in-from-bottom-4">
-                    <DraggableGenUI id={`explainer-${index}`}>
-                      <DefinitionExplainer term={message.data} />
-                    </DraggableGenUI>
-                  </div>
-                )
-              }
-
-              if (message.component === "scoping") {
-                return (
-                  <div key={index} className="pl-12 animate-in fade-in slide-in-from-bottom-4">
-                    <DraggableGenUI id={`scoping-${index}`} disableDrag={true}>
-                      <ScopingCard />
-                    </DraggableGenUI>
                   </div>
                 )
               }
 
               return null
             })}
+
+            {/* Live Thinking Indicator - only show before assistant message is created */}
+            {isThinking && !isStreaming && (
+              <div className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 items-start">
+                <div className="w-8 h-8 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center flex-shrink-0 shadow-sm mt-1 animate-pulse">
+                  <Bot className="w-4 h-4 text-stone-400" />
+                </div>
+                <div className="flex flex-col gap-2 w-full max-w-[90%]">
+                  <ReasoningChain steps={currentReasoning} isThinking={true} />
+                </div>
+              </div>
+            )}
+
+            {/* Scroll Anchor */}
+            <div ref={messagesEndRef} />
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
@@ -214,6 +266,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
               {starterPrompts.map((prompt, index) => (
                 <button
                   key={index}
+                  onClick={() => sendThreadMessage(prompt.label, { streamResponse: true })}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl card-skeu hover:translate-y-[-2px] transition-all group text-left"
                 >
                   <div className={`w-8 h-8 rounded-lg ${prompt.bg} inset-skeu flex items-center justify-center group-hover:scale-110 transition-transform`}>
@@ -270,7 +323,8 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
               {/* Enhanced Send Button */}
               <button
                 onClick={handleSend}
-                className="h-10 w-10 shrink-0 rounded-2xl bg-[#20808D] hover:bg-[#165a63] flex items-center justify-center text-white shadow-xl shadow-[#20808D]/20 hover:shadow-2xl hover:shadow-[#20808D]/30 hover:scale-105 active:scale-95 transition-all duration-300 group/send"
+                disabled={!inputValue.trim()}
+                className="h-10 w-10 shrink-0 rounded-2xl bg-[#20808D] hover:bg-[#165a63] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-white shadow-xl shadow-[#20808D]/20 hover:shadow-2xl hover:shadow-[#20808D]/30 hover:scale-105 active:scale-95 transition-all duration-300 group/send"
               >
                 <Send className="w-4 h-4 group-hover/send:translate-x-0.5 group-hover/send:-translate-y-0.5 transition-transform duration-300" />
               </button>
