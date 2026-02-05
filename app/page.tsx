@@ -27,6 +27,8 @@ export default function DealDeskPage() {
   const [activeId, setActiveId] = useState<string | null>(null)
 
   const [canvasItems, setCanvasItems] = useState<{ id: string; colSpan: number }[]>([])
+  const [docContent, setDocContent] = useState<string | null>(null)
+  const [docFileName, setDocFileName] = useState<string | null>(null)
 
 
   const sensors = useSensors(
@@ -37,7 +39,9 @@ export default function DealDeskPage() {
     })
   )
 
-  function handleUpload() {
+  function handleUpload(content: string, fileName: string) {
+    setDocContent(content)
+    setDocFileName(fileName)
     setAppState('processing')
   }
 
@@ -117,7 +121,7 @@ export default function DealDeskPage() {
             {/* Context / Project Switcher - Skeuomorphic Dropdown */}
             <button className="flex items-center gap-2 px-3 pl-3.5 py-1.5 rounded-lg inset-skeu bg-stone-50/50 hover:bg-white transition-all group">
               <span className="text-sm font-medium text-stone-700 group-hover:text-stone-900">
-                {appState === 'active' ? "Acme Corp MSA" : "New Project"}
+                {appState === 'active' ? (docFileName || "Acme Corp MSA") : "New Project"}
               </span>
               <ChevronDown className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-600" />
             </button>
@@ -161,7 +165,12 @@ export default function DealDeskPage() {
                 <div className="flex-1 overflow-hidden">
                   {appState === 'empty' && <UploadZone onUpload={handleUpload} onDraft={handleDraft} />}
                   {appState === 'processing' && <ProcessingView onComplete={handleProcessingComplete} />}
-                  {appState === 'active' && <DocumentEditor />}
+                  {appState === 'active' && (
+                    <DocumentEditor
+                      content={docContent || undefined}
+                      fileName={docFileName || undefined}
+                    />
+                  )}
                 </div>
 
 

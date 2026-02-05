@@ -1,19 +1,44 @@
 "use client"
 
+import { useRef } from "react"
 import { UploadCloud, FileText, ArrowUp, PenTool } from "lucide-react"
 
 interface UploadZoneProps {
-    onUpload: () => void
+    onUpload: (content: string, fileName: string) => void
     onDraft?: () => void
 }
 
 export function UploadZone({ onUpload, onDraft }: UploadZoneProps) {
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const reader = new FileReader()
+        reader.onload = (event) => {
+            const content = event.target?.result as string
+            onUpload(content, file.name)
+        }
+        reader.readAsText(file)
+    }
+
+    const handleClick = () => {
+        fileInputRef.current?.click()
+    }
     return (
         <div className="h-full flex items-center justify-center p-8">
             <div
-                onClick={onUpload}
+                onClick={handleClick}
                 className="w-full max-w-2xl aspect-[4/3] rounded-[2rem] border-4 border-dashed border-stone-300 bg-stone-50/30 hover:bg-[#20808D]/5 has-[button:hover]:bg-stone-50/30 hover:border-[#20808D]/40 has-[button:hover]:border-stone-300 transition-all duration-500 cursor-pointer group flex flex-col items-center justify-center relative overflow-hidden shadow-sm hover:shadow-xl has-[button:hover]:shadow-sm hover:shadow-[#20808D]/10 has-[button:hover]:shadow-none"
             >
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept=".md,.txt,.pdf"
+                />
                 <div className="absolute inset-0 bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] [background-size:32px_32px] opacity-20 pointer-events-none group-hover:opacity-30 group-hover:bg-[radial-gradient(#20808D_1px,transparent_1px)] group-has-[button:hover]:opacity-20 group-has-[button:hover]:bg-[radial-gradient(#d6d3d1_1px,transparent_1px)] transition-all duration-500" />
 
                 <div className="relative z-10 flex flex-col items-center text-center space-y-8">
@@ -30,7 +55,7 @@ export function UploadZone({ onUpload, onDraft }: UploadZoneProps) {
                     <div className="space-y-3 max-w-sm">
                         <h3 className="font-serif text-4xl text-stone-800 font-medium tracking-tight group-hover:text-[#0d3d43] transition-colors duration-500">Upload Contract</h3>
                         <p className="text-lg text-stone-500 leading-relaxed font-medium">
-                            Drag and drop your PDF here,<br />or click to browse files.
+                            Drag and drop your .txt or .md here,<br />or click to browse files.
                         </p>
                     </div>
 
