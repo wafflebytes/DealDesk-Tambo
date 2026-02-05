@@ -1,0 +1,302 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    --background: 43 30% 98%;
+    --foreground: 24 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 9% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 9% 10%;
+    --primary: 24 9% 10%;
+    --primary-foreground: 33 14% 96%;
+    --secondary: 30 6% 90%;
+    --secondary-foreground: 24 9% 10%;
+    --muted: 30 6% 90%;
+    --muted-foreground: 24 6% 45%;
+    --accent: 48 96% 89%;
+    --accent-foreground: 24 9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 24 6% 83%;
+    --input: 24 6% 83%;
+    --ring: 24 9% 10%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Skeuomorphic Button Styles */
+@layer components {
+
+  /* Premium Skeuomorphic Button */
+  .btn-skeu {
+    @apply relative overflow-hidden transition-all duration-200 ease-out;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f5f4 100%);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 1) inset,
+      0 -1px 0 0 rgba(214, 211, 209, 0.5) inset,
+      0 1px 2px 0 rgba(0, 0, 0, 0.05),
+      0 2px 4px 0 rgba(0, 0, 0, 0.02);
+    border: 1px solid #e7e5e4;
+  }
+
+  .btn-skeu::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 100%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .btn-skeu:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 1) inset,
+      0 -1px 0 0 rgba(214, 211, 209, 0.5) inset,
+      0 2px 4px 0 rgba(0, 0, 0, 0.05),
+      0 4px 8px 0 rgba(0, 0, 0, 0.02);
+  }
+
+  .btn-skeu:active {
+    transform: translateY(1px);
+    background: linear-gradient(180deg, #f5f5f4 0%, #e7e5e4 100%);
+    box-shadow:
+      0 1px 2px 0 rgba(0, 0, 0, 0.05) inset,
+      0 0 0 1px rgba(0, 0, 0, 0.05) inset;
+  }
+
+  /* Perplexity-inspired Teal Variant (Replaces Stone Dark) */
+  .btn-skeu-dark {
+    @apply relative overflow-hidden text-white transition-all duration-200;
+    background: linear-gradient(180deg, #20808D 0%, #165a63 100%);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.15) inset,
+      0 -1px 0 0 rgba(0, 0, 0, 0.3) inset,
+      0 2px 4px 0 rgba(32, 128, 141, 0.2),
+      0 4px 12px 0 rgba(0, 0, 0, 0.1);
+    border: 1px solid #0d3d43;
+  }
+
+  .btn-skeu-dark:hover {
+    background: linear-gradient(180deg, #2ba6b7 0%, #165a63 100%);
+    transform: translateY(-1px);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.2) inset,
+      0 4px 15px 0 rgba(32, 128, 141, 0.3);
+  }
+
+  .btn-skeu-dark:active {
+    background: linear-gradient(180deg, #165a63 0%, #20808D 100%);
+    box-shadow:
+      0 1px 4px 0 rgba(0, 0, 0, 0.4) inset;
+    transform: translateY(1px);
+  }
+
+  .btn-skeu-pill {
+    @apply btn-skeu rounded-full;
+  }
+
+  /* Premium Floating Card */
+  .card-skeu {
+    @apply relative bg-white;
+    background: linear-gradient(180deg, #ffffff 0%, #fafaf9 100%);
+    border: 1px solid #e7e5e4;
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 1) inset,
+      0 2px 6px -1px rgba(0, 0, 0, 0.05),
+      0 6px 24px -6px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Inset Areas (Inputs, Troughs) */
+  .inset-skeu {
+    background: #f5f5f4;
+    box-shadow:
+      0 2px 4px 0 rgba(0, 0, 0, 0.06) inset,
+      0 1px 1px 0 rgba(0, 0, 0, 0.04) inset,
+      0 1px 0 0 rgba(255, 255, 255, 1);
+    border: 1px solid transparent;
+    /* Prepare for focus ring */
+  }
+
+  .input-skeu {
+    @apply inset-skeu rounded-lg transition-all duration-200 outline-none px-3 py-2 text-sm text-stone-800;
+    border: 1px solid #e7e5e4;
+  }
+
+  .input-skeu:focus {
+    background: #ffffff;
+    border-color: #d6d3d1;
+    box-shadow:
+      0 1px 2px 0 rgba(0, 0, 0, 0.05) inset,
+      0 0 0 3px rgba(231, 229, 228, 0.5);
+  }
+
+  /* Tactile Knob/Handle */
+  .knob-skeu {
+    @apply relative flex items-center justify-center;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f5f4 100%);
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 1) inset,
+      0 2px 4px 0 rgba(0, 0, 0, 0.1),
+      0 4px 8px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid #d6d3d1;
+  }
+
+  .knob-skeu::before {
+    /* Subtle texture */
+    content: "";
+    width: 40%;
+    height: 40%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent);
+  }
+
+  /* Premium Skeuomorphic Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-stone-300;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-stone-300;
+  }
+
+  .custom-scrollbar-teal::-webkit-scrollbar-thumb {
+    background-color: #20808D44;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-stone-400;
+  }
+
+}
+
+/* Print Mode Styles - For clean PDF generation with selectable text */
+@media print {
+  @page {
+    margin: 20mm;
+    size: auto;
+  }
+
+  body {
+    background: white !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Only show the printable document */
+  #printable-document,
+  #printable-document * {
+    visibility: visible;
+  }
+
+  /* Reset positioning for the printable document */
+  #printable-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure text colors are forced */
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Explicitly hide elements marked with .pdf-hide class */
+  .pdf-hide,
+  .print\:hidden {
+    display: none !important;
+  }
+}
