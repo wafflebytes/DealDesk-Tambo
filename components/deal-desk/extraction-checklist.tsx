@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { Check, ClipboardList, AlertCircle, ArrowRight, GripVertical, Link2 } from "lucide-react"
+import { Check, ArrowRight, Link2 } from "lucide-react"
+import { useTamboComponentState } from "@tambo-ai/react"
+import { ChecklistData } from "@/components/genui/schemas"
 
 interface TaskItem {
     id: string
@@ -11,24 +12,29 @@ interface TaskItem {
     priority: "high" | "medium" | "low"
 }
 
-export function ExtractionChecklist() {
-    const [tasks, setTasks] = useState<TaskItem[]>([
-        { id: "1", text: "Provider MUST deliver Phase 1 report by Jan 30", source: "Section 4.1", completed: false, priority: "high" },
-        { id: "2", text: "Client SHALL provide access to server logs", source: "Section 4.3", completed: true, priority: "medium" },
-        { id: "3", text: "Payment MUST be processed within 30 days", source: "Section 5.2", completed: false, priority: "high" },
-        { id: "4", text: "Provider to conduct weekly status calls", source: "Section 2.1", completed: false, priority: "low" },
-    ])
+const defaultTasks: TaskItem[] = []
+
+export function ExtractionChecklist(props: Partial<ChecklistData>) {
+
+    // -- State --
+    // We store the array of tasks in component state so we can toggle completion locally
+    const [tasks, setTasks] = useTamboComponentState<TaskItem[]>(
+        "tasks",
+        defaultTasks,
+        (props.tasks as TaskItem[]) || defaultTasks
+    )
 
     const toggleTask = (id: string) => {
+        if (!tasks) return
         setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
     }
 
-    const completedCount = tasks.filter(t => t.completed).length
-    const progress = (completedCount / tasks.length) * 100
+    const safeTasks = tasks || []
+    const completedCount = safeTasks.filter(t => t.completed).length
+    const progress = safeTasks.length > 0 ? (completedCount / safeTasks.length) * 100 : 0
 
     return (
-        <div className="rounded-xl card-skeu group relative overflow-hidden w-full min-w-0">
-
+        <div className="rounded-xl card-skeu group relative overflow-hidden w-full min-w-0 bg-white">
 
             {/* Thread Indicator */}
             <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-3 h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -40,10 +46,10 @@ export function ExtractionChecklist() {
             <div className="px-5 py-4 border-b border-stone-100 bg-gradient-to-b from-white to-stone-50/50 flex items-center justify-between relative">
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-4 bg-[#20808D] rounded-full" />
-                    <h3 className="font-serif text-base text-stone-900">Obligations</h3>
+                    <h3 className="font-serif text-base text-stone-900">{props.title || "Obligations"}</h3>
                 </div>
                 <div className="text-[10px] font-bold tracking-wide text-stone-500 bg-stone-100 px-2.5 py-1 rounded-full border border-stone-200 shadow-sm transition-transform duration-300 ease-out group-hover:-translate-x-8 will-change-transform">
-                    {completedCount}<span className="text-stone-300 mx-0.5">/</span>{tasks.length}
+                    {completedCount}<span className="text-stone-300 mx-0.5">/</span>{safeTasks.length}
                 </div>
             </div>
 
@@ -57,9 +63,13 @@ export function ExtractionChecklist() {
 
             {/* Content */}
             <div className="p-4 bg-gradient-to-b from-stone-50/30 to-transparent space-y-3">
-                {tasks.map((task) => (
+                {safeTasks.length === 0 && (
+                    <div className="text-center text-xs text-stone-400 py-4 italic">No tasks found</div>
+                )}
+
+                {safeTasks.map((task, idx) => (
                     <div
-                        key={task.id}
+                        key={task.id || idx}
                         onClick={() => toggleTask(task.id)}
                         className={`group/item relative flex items-start gap-3.5 p-3 rounded-xl transition-all cursor-pointer border ${task.completed
                             ? "bg-transparent border-transparent opacity-60 hover:opacity-100"

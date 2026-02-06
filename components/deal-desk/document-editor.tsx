@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react"
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react"
 import { BubbleMenu } from "@tiptap/react/menus"
 import { Markdown } from "tiptap-markdown"
+import { useTamboContextHelpers } from "@tambo-ai/react"
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit"
@@ -193,6 +194,35 @@ export function DocumentEditor({ content, fileName }: DocumentEditorProps) {
       editor.commands.setContent(newContent)
     }
   }, [content, editor, diffMode])
+
+  // --- Tambo Context Integration ---
+  const { addContextHelper, removeContextHelper } = useTamboContextHelpers()
+
+  useEffect(() => {
+    if (!editor) return
+
+    // Register a dynamic context helper that runs on every message
+    addContextHelper("active_document", () => {
+      if (editor.isDestroyed) return {}
+
+      const selection = editor.state.selection
+      const selectedText = selection.empty
+        ? ""
+        : editor.state.doc.textBetween(selection.from, selection.to, " ")
+
+      return {
+        content: editor.getText(), // Full text content
+        selectedText: selectedText, // User's highlighted text
+        cursorPosition: selection.from,
+        lineCount: editor.state.doc.childCount
+      }
+    })
+
+    return () => {
+      removeContextHelper("active_document")
+    }
+  }, [editor, addContextHelper, removeContextHelper])
+
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     if (gutterRef.current) {
