@@ -247,6 +247,23 @@
     @apply bg-stone-400;
   }
 
+  /* iOS-style wiggle animation for edit mode */
+  @keyframes wiggle {
+
+    0%,
+    100% {
+      transform: rotate(-1deg);
+    }
+
+    50% {
+      transform: rotate(1deg);
+    }
+  }
+
+  .animate-wiggle {
+    animation: wiggle 0.15s ease-in-out infinite;
+  }
+
 }
 
 /* Print Mode Styles - For clean PDF generation with selectable text */

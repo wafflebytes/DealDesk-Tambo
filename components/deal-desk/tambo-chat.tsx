@@ -1,16 +1,19 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2, Github } from "lucide-react"
+import React, { useState, useRef, useEffect } from "react"
+import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2, Github, ChevronDown } from "lucide-react"
 import { useTamboThread } from "@tambo-ai/react"
+
+// GenUI Components
 import { RiskRadar } from "./risk-radar"
 import { ClauseTuner } from "./clause-tuner"
-import { ScopingCard } from "./scoping-card"
 import { ExtractionChecklist } from "./extraction-checklist"
 import { DefinitionBank } from "./definition-bank"
-import { DefinitionExplainer } from "./definition-explainer"
-import { DraggableGenUI } from "./draggable-gen-ui"
+import { ScopingCard } from "./scoping-card"
 import { ReasoningChain, ReasoningStep } from "./reasoning-chain"
+import { DraggableGenUI } from "./draggable-gen-ui"
+import { ThreadDrawer } from "./thread-drawer"
+import { DealRiskData, ClauseTunerData, ChecklistData, DefinitionBankData, ScopingData } from "@/components/genui/schemas"
 
 const starterPrompts = [
   { icon: AlertTriangle, label: "Analyze Risk", color: "text-amber-600", bg: "bg-amber-50" },
@@ -31,6 +34,78 @@ function getMessageContent(content: unknown): string {
   return ''
 }
 
+// Strip markdown formatting for clean display
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')  // **bold** -> bold
+    .replace(/\*([^*]+)\*/g, '$1')       // *italic* -> italic
+    .replace(/__([^_]+)__/g, '$1')       // __bold__ -> bold
+    .replace(/_([^_]+)_/g, '$1')         // _italic_ -> italic
+    .replace(/`([^`]+)`/g, '$1')         // `code` -> code
+    .replace(/^#+\s+/gm, '')             // ## Heading -> Heading
+    .replace(/^[-*]\s+/gm, '• ')         // - list -> • list
+    .replace(/\n{3,}/g, '\n\n')          // Multiple newlines -> double
+    .trim()
+}
+
+// Components that are GenUI (not orchestrator tools)
+const GENUI_COMPONENTS = ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'DefinitionBank', 'KnowledgeBank', 'ScopingCard']
+
+// Map sub-agents to user-friendly display names
+const AGENT_DISPLAY_NAMES: Record<string, string> = {
+  coordinate: 'Coordinator',
+  analyzeContractRisks: 'Risk Analyst',
+  negotiateClause: 'Clause Negotiator',
+  extractObligations: 'Obligation Extractor',
+  curateDefinitions: 'Definition Curator',
+  scopeRequest: 'Scoping Specialist',
+  orchestrate: 'Coordinator'
+}
+
+// Detect if content is an orchestrator "thought" that should go in reasoning chain
+function isOrchestratorThought(content: string): boolean {
+  const text = content.trim()
+
+  // Direct thought patterns
+  const directPatterns = [
+    /^I'll\s/i,
+    /^I will\s/i,
+    /^Let me\s/i,
+    /^(Analyzing|Classifying|Processing|Assessing)/i
+  ]
+
+  // Patterns with common prefixes (Got it, Sure, Okay, etc.)
+  const prefixedPatterns = [
+    /^(Got it|Sure|Okay|Alright|OK)[—–\-,.:!]?\s*(I'll|I will|Let me)/i,
+    /^(Got it|Sure|Okay|Alright|OK)[—–\-,.:!]?\s*\w/i // "Got it—" followed by anything
+  ]
+
+  // Content patterns (these indicate orchestrator explanation regardless of start)
+  const contentPatterns = [
+    /risk profile/i,
+    /assess the (agreement|contract|deal)/i,
+    /analyze the (MSA|agreement|contract)/i,
+    /score the.*risk/i,
+    /pull up.*view/i,
+    /render.*component/i,
+    /visualize the/i,
+    /classify your request/i,
+    /summarize the contract/i, // Added: Raw JSON detection
+    /"risks":/i, // Catch the specific risks JSON
+    /"Liability":/i,
+    /"intent":/i
+  ]
+
+  // Aggressive JSON detection: If it looks like a JSON object, treat it as a thought/background data
+  if (text.trim().startsWith('{') || text.trim().startsWith('[')) {
+    return true
+  }
+
+  return directPatterns.some(p => p.test(text)) ||
+    prefixedPatterns.some(p => p.test(text)) ||
+    contentPatterns.some(p => p.test(text))
+}
+
 export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'active' }) {
   // Tambo SDK Hooks
   const { thread, sendThreadMessage, generationStage, isIdle } = useTamboThread()
@@ -40,6 +115,9 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
   const [currentReasoning, setCurrentReasoning] = useState<ReasoningStep[]>([])
   const [messageReasoningMap, setMessageReasoningMap] = useState<Record<string, ReasoningStep[]>>({})
   const [pendingMessageId, setPendingMessageId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -52,46 +130,110 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
     generationStage !== 'ERROR' &&
     generationStage !== 'STREAMING_RESPONSE'
 
-  // Update reasoning chain based on generation stage
+  // Update reasoning chain based on generation stage - MCP Agent labels
   useEffect(() => {
     if (generationStage === 'CHOOSING_COMPONENT') {
-      setCurrentReasoning([{ message: "Analyzing your request...", status: "processing" }])
+      setCurrentReasoning([{ message: "🧠 Maven is analyzing your request...", status: "processing", type: "analysis" }])
     } else if (generationStage === 'FETCHING_CONTEXT') {
       setCurrentReasoning(prev => [
         { ...prev[0], status: "complete" },
-        { message: "Gathering context...", status: "processing", tool: "ContextFetcher" }
+        { message: "📋 Calling Coordinator agent...", status: "processing", tool: "coordinate", type: "tool_call" }
       ])
     } else if (generationStage === 'HYDRATING_COMPONENT') {
       setCurrentReasoning(prev => [
         ...prev.map(s => ({ ...s, status: "complete" as const })),
-        { message: "Preparing response...", status: "processing" }
+        { message: "⚡ Invoking sub-agent...", status: "processing", type: "analysis" }
       ])
     } else if (generationStage === 'STREAMING_RESPONSE') {
-      // Mark all as complete but keep them for the message
-      setCurrentReasoning(prev => prev.map(s => ({ ...s, status: "complete" as const })))
+      // Mark all as complete and try to extract orchestrator decision
+      setCurrentReasoning(prev => {
+        const completedSteps = prev.map(s => ({ ...s, status: "complete" as const }))
+        return completedSteps
+      })
     } else if (generationStage === 'COMPLETE' || generationStage === 'IDLE') {
-      // Clear for next message cycle
-      setCurrentReasoning([])
+      // Don't clear reasoning - keep it for persistence
+      // Only clear pendingMessageId for next cycle
       setPendingMessageId(null)
     }
   }, [generationStage])
 
   // Attach reasoning to the assistant message when streaming starts
+  // Also extract orchestrator decision from tool_calls
   useEffect(() => {
     if (generationStage === 'STREAMING_RESPONSE' && thread?.messages && currentReasoning.length > 0) {
-      const lastMessage = thread.messages[thread.messages.length - 1]
+      const lastMessage = thread.messages[thread.messages.length - 1] as any
       if (lastMessage?.role === 'assistant' && lastMessage.id && pendingMessageId !== lastMessage.id) {
         setPendingMessageId(lastMessage.id)
+
+        // Try to extract orchestrator decision from tool_calls
+        let reasoningWithDecision = currentReasoning.map(s => ({ ...s, status: "complete" as const }))
+
+        if (lastMessage.tool_calls?.length > 0) {
+          const orchestrateCall = lastMessage.tool_calls.find((tc: any) => tc.function?.name === 'orchestrate')
+          if (orchestrateCall) {
+            try {
+              const args = JSON.parse(orchestrateCall.function.arguments || '{}')
+              // Check if there's a result (from function call output)
+              const hasGenUI = lastMessage.tool_calls.some((tc: any) =>
+                ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'KnowledgeBank'].includes(tc.function?.name)
+              )
+
+              reasoningWithDecision = [
+                ...reasoningWithDecision,
+                {
+                  message: "Decision made",
+                  status: "complete" as const,
+                  type: "decision" as const,
+                  decision: {
+                    intent: hasGenUI ? 'genui' as const : 'text' as const,
+                    component: hasGenUI ? lastMessage.tool_calls.find((tc: any) =>
+                      ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'KnowledgeBank'].includes(tc.function?.name)
+                    )?.function?.name : undefined,
+                    reasoning: args.reasoning || (hasGenUI ? 'Rendering interactive component' : 'Providing text response')
+                  }
+                }
+              ]
+            } catch (e) {
+              // Fallback if parsing fails
+            }
+          } else {
+            // No orchestrate call but has GenUI - infer decision
+            const genUICall = lastMessage.tool_calls.find((tc: any) =>
+              ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'KnowledgeBank'].includes(tc.function?.name)
+            )
+            if (genUICall) {
+              reasoningWithDecision = [
+                ...reasoningWithDecision,
+                {
+                  message: "Decision made",
+                  status: "complete" as const,
+                  type: "decision" as const,
+                  decision: {
+                    intent: 'genui' as const,
+                    component: genUICall.function.name,
+                    reasoning: 'Rendering interactive component'
+                  }
+                }
+              ]
+            }
+          }
+        }
+
         setMessageReasoningMap(prev => ({
           ...prev,
-          [lastMessage.id!]: currentReasoning.map(s => ({ ...s, status: "complete" as const }))
+          [lastMessage.id!]: reasoningWithDecision
         }))
       }
     }
   }, [generationStage, thread?.messages, currentReasoning, pendingMessageId])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  const lastMessageCount = useRef(0)
+
+  const scrollToBottom = (force = false) => {
+    if (force || (thread?.messages?.length || 0) > lastMessageCount.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+    lastMessageCount.current = thread?.messages?.length || 0
   }
 
   useEffect(() => {
@@ -110,10 +252,6 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
     adjustHeight()
   }, [inputValue])
 
-  const handleExplainDefinition = (term: string) => {
-    sendThreadMessage(`Explain "${term}"`, { streamResponse: true })
-  }
-
   const handleSend = async () => {
     if (!inputValue.trim()) return
 
@@ -126,115 +264,318 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
   const hasMessages = thread?.messages && thread.messages.length > 0
 
+  // Helper to render tools based on tool_calls
+  const renderToolCall = (toolCall: any) => {
+    if (!toolCall || !toolCall.function || !toolCall.function.name) return null;
+
+    try {
+      const args = JSON.parse(toolCall.function.arguments || "{}")
+
+      // ... imports
+
+      const Component = (() => {
+        switch (toolCall.function.name) {
+          case "RiskRadar":
+            return <RiskRadar {...(args as unknown as DealRiskData)} />
+          case "ClauseTuner":
+            return <ClauseTuner {...args as Partial<ClauseTunerData>} />
+          case "ExtractionChecklist":
+            return <ExtractionChecklist {...args as Partial<ChecklistData>} />
+          case "DefinitionBank":
+          case "KnowledgeBank":
+            return <DefinitionBank {...args as Partial<DefinitionBankData>} />
+          case "ScopingCard":
+            return <ScopingCard {...args as Partial<ScopingData>} />
+          default:
+            return null
+        }
+      })()
+
+      if (!Component) return null
+
+      return (
+        <DraggableGenUI id={`${toolCall.function.name}-${toolCall.id || Math.random()}`} type={toolCall.function.name} data={args}>
+          {Component}
+        </DraggableGenUI>
+      )
+    } catch (e) {
+      console.error("Failed to parse tool args", e)
+      return null
+    }
+  }
+
+
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-[#f4fafa] to-[#edf3f3]">
-      {/* Header - Sticky & Translucent - Maven Redesign (Compact) */}
-      <div className="flex-none px-5 py-3 bg-transparent z-20 relative">
+    <div className="relative flex flex-col h-full bg-slate-50 overflow-hidden border-l border-slate-200">
+      {/* Thread Drawer */}
+      <ThreadDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+      />
+
+      {/* Header - Fixed in Flow */}
+      <div className="flex-none px-5 py-3 bg-white/80 backdrop-blur-md border-b border-slate-200 z-30">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Left: Hamburger Menu */}
-            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
+          <div className={`flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'hidden' : 'flex'}`}>
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+            >
               <div className="flex flex-col gap-0.5">
-                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
-                <span className="w-4 h-0.5 bg-stone-600 rounded-full" />
+                <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
+                <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
+                <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
               </div>
             </button>
-
-            {/* GitHub Icon */}
-            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 active:scale-95 transition-all">
+            <button className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
               <Github className="w-4 h-4" />
             </button>
-
-            {/* Tambo Icon (Styled SVG) */}
-            <button className="h-8 w-8 rounded-lg btn-skeu flex items-center justify-center text-emerald-600 hover:text-emerald-700 active:scale-95 transition-all">
-              <svg
-                viewBox="0 0 24 24"
-                className="w-4 h-4 fill-current"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M12 2L4.5 20.29L5.21 21L12 18L18.79 21L19.5 20.29L12 2Z" />
-              </svg>
-            </button>
           </div>
 
-          {/* Center: Maven Branding (Absolute Center) */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-            <h2 className="font-serif text-lg font-bold text-[#20808D] leading-none mb-0.5 tracking-tight">Maven</h2>
-            <p className="text-[9px] font-medium text-stone-400 uppercase tracking-widest scale-90">Your Legal Assistant</p>
+          <div className={`flex flex-col items-center flex-1 ${isSearchFocused ? 'hidden' : 'flex'}`}>
+            <h2 className="font-serif text-base font-bold text-slate-800 leading-none mb-0.5">Maven</h2>
+            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Assistant</p>
           </div>
 
-          {/* Right: Search Bar */}
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
-              <Search className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-500 transition-colors" />
+          <div className={`relative flex items-center gap-2 ${isSearchFocused ? 'w-full' : 'w-auto'}`}>
+            <div className="relative group">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => !searchQuery && setIsSearchFocused(false)}
+                placeholder="Search..."
+                className={`h-8 pl-8 pr-7 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all ${isSearchFocused ? 'w-full' : 'w-32'}`}
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Search..."
-              className="h-8 w-32 pl-8 pr-3 text-xs bg-stone-100/50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-200 focus:bg-white transition-all placeholder:text-stone-400 text-stone-700 shadow-inner"
-            />
+            {isSearchFocused && (
+              <button
+                onClick={() => { setSearchQuery(""); setIsSearchFocused(false) }}
+                className="text-xs font-medium text-slate-500 hover:text-slate-700"
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-5 py-12 scroll-smooth relative custom-scrollbar-teal">
-        {/* Top Fade Mask */}
-        <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#f4fafa] via-[#f4fafa]/80 to-transparent z-10 pointer-events-none" />
+      <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 scroll-smooth relative custom-scrollbar-teal">
+        {/* Top Fade Mask - Removed or simplified */}
 
         {hasMessages ? (
           <div className="space-y-6 pb-4">
-            {/* Render Tambo Thread Messages */}
-            {thread?.messages?.map((message, index) => {
-              if (message.role === "user") {
-                return (
-                  <div key={message.id || index} className="flex justify-end animate-in fade-in slide-in-from-bottom-2">
-                    <div className="max-w-[80%] px-5 py-3 btn-skeu-dark rounded-2xl rounded-tr-sm text-sm leading-relaxed font-medium">
-                      {getMessageContent(message.content)}
+            {/* Render Tambo Thread Messages - Group consecutive assistant messages */}
+            {(() => {
+              const allMessages = thread?.messages || []
+
+              // Filter messages based on search query
+              const messages = searchQuery.trim()
+                ? allMessages.filter(msg => {
+                  const content = getMessageContent(msg.content).toLowerCase()
+                  return content.includes(searchQuery.toLowerCase())
+                })
+                : allMessages
+
+              const renderedMessages: React.ReactNode[] = []
+              let i = 0
+
+              while (i < messages.length) {
+                const message = messages[i]
+
+                if (message.role === "user") {
+                  renderedMessages.push(
+                    <div key={message.id || i} className="flex justify-end animate-in fade-in slide-in-from-bottom-2">
+                      <div className="max-w-[80%] px-5 py-3 btn-skeu-dark rounded-2xl rounded-tr-sm text-sm leading-relaxed font-medium">
+                        {getMessageContent(message.content)}
+                      </div>
                     </div>
-                  </div>
+                  )
+                  i++
+                  continue
+                }
+
+                // Collect ALL consecutive non-user messages (assistant, tool, system)
+                const assistantGroup: typeof messages = []
+                while (i < messages.length && messages[i].role !== "user") {
+                  assistantGroup.push(messages[i])
+                  i++
+                }
+
+                // Check if ANY message in this group has a REAL GenUI component
+                const hasGenUIInGroup = assistantGroup.some(
+                  m => (m as any).renderedComponent ||
+                    (m as any).tool_calls?.some((tc: any) => GENUI_COMPONENTS.includes(tc.function?.name))
                 )
-              }
 
-              if (message.role === "assistant") {
-                const content = getMessageContent(message.content)
-                const messageId = message.id || `msg-${index}`
-                // Get reasoning: either from map (completed) or current (if this is the streaming message)
-                const reasoning = messageReasoningMap[messageId] ||
-                  (isStreaming && index === (thread?.messages?.length || 0) - 1 ? currentReasoning : [])
+                // Check if there's any non-thought text content to display
+                const nonThoughtTextMessages = assistantGroup.filter(m => {
+                  const content = getMessageContent(m.content)
+                  return content && !isOrchestratorThought(content)
+                })
 
-                return (
-                  <div key={messageId} className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 items-start">
+                // Check if still loading
+                const isStillLoading = assistantGroup.every(m => {
+                  const content = getMessageContent(m.content)
+                  const toolCalls = (m as any).tool_calls || []
+                  return !content && toolCalls.length === 0 && !(m as any).renderedComponent
+                })
+
+                // Check if there are any orchestrator thoughts to show
+                const hasThoughts = assistantGroup.some(m => {
+                  const content = getMessageContent(m.content)
+                  return content && isOrchestratorThought(content)
+                })
+
+                // SKIP this group ONLY if it has no content, no loading state, and no thoughts
+                if (!hasGenUIInGroup && nonThoughtTextMessages.length === 0 && !isStillLoading && !hasThoughts) {
+                  continue
+                }
+
+                // Render the grouped messages with ONE avatar
+                const firstMessageWithId = assistantGroup.find(m => m.id)
+                const groupKey = firstMessageWithId?.id || `group-${i}`
+
+                renderedMessages.push(
+                  <div key={groupKey} className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 items-start">
+                    {/* Single avatar for the entire group */}
                     <div className="w-8 h-8 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center flex-shrink-0 shadow-sm mt-1">
                       <Bot className="w-4 h-4 text-stone-600" />
                     </div>
 
-                    <div className="flex flex-col gap-2 w-full max-w-[90%]">
-                      {/* Reasoning Chain - collapsed by default for completed messages */}
-                      {reasoning.length > 0 && (
-                        <ReasoningChain
-                          steps={reasoning}
-                          isThinking={isStreaming && index === (thread?.messages?.length || 0) - 1 && !content}
-                        />
-                      )}
+                    <div className="flex flex-col gap-3 w-full max-w-[90%]">
+                      {/* Show reasoning chain for this message group if available */}
+                      {/* Check all messages in group for reasoning, but usually attached to first assistant msg */}
+                      {(() => {
+                        const msgWithReasoning = assistantGroup.find(m => m.id && messageReasoningMap[m.id])
+                        if (msgWithReasoning?.id) {
+                          return (
+                            <ReasoningChain
+                              steps={messageReasoningMap[msgWithReasoning.id]}
+                              isThinking={false}
+                              persistAfterComplete={true}
+                            />
+                          )
+                        }
+                        return null
+                      })()}
 
-                      {/* Message Content */}
-                      <div className="px-5 py-3.5 rounded-2xl rounded-tl-none card-skeu text-sm text-stone-700 leading-relaxed">
-                        {content || (
-                          <span className="flex items-center gap-2 text-stone-400">
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Generating response...
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const results: React.ReactNode[] = []
+
+                        // 1. Identify the GenUI message index (if any)
+                        // We use the same finding logic as before but get the INDEX
+                        const genUIMessageIndex = assistantGroup.findIndex(m =>
+                          (m as any).renderedComponent ||
+                          (m as any).tool_calls?.some((tc: any) => GENUI_COMPONENTS.includes(tc.function?.name))
+                        )
+
+                        // Helper to render a text message
+                        // Helper to render a text message
+                        const renderTextMsg = (msg: any, i: number) => {
+                          // Hide "tool" role messages (which contain raw JSON output) and system messages
+                          if (msg.role === 'tool' || msg.role === 'system') return null
+
+                          const content = getMessageContent(msg.content)
+                          if (!content || content.trim().length === 0) return null
+                          // Basic "thought" filter if not handled by getMessageContent
+                          if (content.startsWith('<thought>')) return null
+
+                          // Hide raw JSON dumps (e.g. tool results echoed as text)
+                          const trimmed = content.trim()
+                          if (trimmed.startsWith('{') && trimmed.endsWith('}')) return null
+
+                          return (
+                            <div key={msg.id || `text-${i}`} className="px-5 py-3.5 rounded-2xl rounded-tl-none card-skeu text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">
+                              {stripMarkdown(content)}
+                            </div>
+                          )
+                        }
+
+                        // 2. Render messages in order
+                        if (genUIMessageIndex === -1) {
+                          // No GenUI, just render all valid text
+                          assistantGroup.forEach((msg, i) => {
+                            const el = renderTextMsg(msg, i)
+                            if (el) results.push(el)
+                          })
+                        } else {
+                          // Render Pre-GenUI Text
+                          assistantGroup.slice(0, genUIMessageIndex).forEach((msg, i) => {
+                            const el = renderTextMsg(msg, i)
+                            if (el) results.push(el)
+                          })
+
+                          // Render GenUI
+                          const genUIMessage = assistantGroup[genUIMessageIndex]
+                          const messageId = genUIMessage.id || 'genui-msg'
+                          let componentName = 'genui'
+
+                          // ... (Exact extraction logic as before) ...
+                          for (const msg of [genUIMessage]) { // scope to just this msg
+                            const msgToolCalls = (msg as any).tool_calls || []
+                            const genUICall = msgToolCalls.find((tc: any) => GENUI_COMPONENTS.includes(tc.function?.name))
+                            if (genUICall) { componentName = genUICall.function.name; break }
+                            const orchestrateCall = msgToolCalls.find((tc: any) => tc.function?.name === 'orchestrate')
+                            if (orchestrateCall) {
+                              try {
+                                const args = JSON.parse(orchestrateCall.function?.arguments || '{}')
+                                if (args.component && GENUI_COMPONENTS.includes(args.component)) { componentName = args.component; break }
+                              } catch (e) { }
+                            }
+                            const compDef = (msg as any).component?.componentDefinition?.name
+                            if (compDef && GENUI_COMPONENTS.includes(compDef)) { componentName = compDef; break }
+                          }
+
+                          const componentType = componentName.replace(/([A-Z])/g, (match: string, p1: string, offset: number) => offset > 0 ? `-${p1.toLowerCase()}` : p1.toLowerCase())
+
+                          if ((genUIMessage as any).renderedComponent) {
+                            const theComponent = (genUIMessage as any).renderedComponent
+                            results.push(
+                              <DraggableGenUI key="genui-rendered" id={messageId} type={componentType} renderedComponent={theComponent}>
+                                <div className="w-full animate-in fade-in slide-in-from-bottom-2">{theComponent}</div>
+                              </DraggableGenUI>
+                            )
+                          } else {
+                            const genUIToolCalls = ((genUIMessage as any).tool_calls || []).filter((tc: any) => GENUI_COMPONENTS.includes(tc.function?.name))
+                            if (genUIToolCalls.length > 0) {
+                              results.push(
+                                <div key="genui-tools" className="space-y-4 w-full">
+                                  {genUIToolCalls.map((tc: any, idx: number) => <div key={idx} className="w-full">{renderToolCall(tc)}</div>)}
+                                </div>
+                              )
+                            }
+                          }
+
+                          // Render Post-GenUI Text
+                          assistantGroup.slice(genUIMessageIndex + 1).forEach((msg, i) => {
+                            const el = renderTextMsg(msg, genUIMessageIndex + 1 + i)
+                            if (el) results.push(el)
+                          })
+                        }
+
+                        if (results.length > 0) return results
+
+                        // Default loading state
+                        if (isStillLoading) return (
+                          <div key="loading" className="px-5 py-3.5 rounded-2xl rounded-tl-none card-skeu text-sm text-stone-700 leading-relaxed">
+                            <span className="flex items-center gap-2 text-stone-400"><Loader2 className="w-4 h-4 animate-spin" />Generating response...</span>
+                          </div>
+                        )
+
+                        return null
+                      })()}
                     </div>
                   </div>
                 )
+                continue
               }
 
-              return null
-            })}
+              return renderedMessages
+            })()}
 
             {/* Live Thinking Indicator - only show before assistant message is created */}
             {isThinking && !isStreaming && (
@@ -280,18 +621,18 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
         )}
       </div>
 
-      {/* Control Deck (Input Area) - Floating Pill */}
-      <div className="flex-none p-6 bg-gradient-to-t from-[#edf3f3] via-[#edf3f3]/95 to-transparent z-20 relative">
-        {/* Bottom Blur Mask Overlay */}
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] -z-10 pointer-events-none rounded-t-[2rem]" />
+      {/* Control Deck (Input Area) - Flush to bottom */}
+      <div className="flex-none p-3 px-4 bg-white border-t border-slate-200 z-20 relative">
         <div className="max-w-3xl mx-auto relative group/input">
           {/* Main Pill - Skeuomorphic */}
-          <div className="flex items-center gap-2 p-1.5 rounded-[2rem] bg-white border border-stone-200 shadow-[0_8px_30px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06),0_2px_4px_rgba(0,0,0,0.04)] ring-4 ring-stone-50/50 transition-all duration-300 ease-out transform group-hover/input:-translate-y-0.5">
+          <div className="flex items-end gap-2 p-1.5 rounded-[2rem] bg-white border border-stone-200 shadow-[0_8px_30px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.02)] ring-4 ring-stone-50/50 transition-shadow duration-300 ease-out">
 
-            {/* Attachment Button */}
-            <button className="h-10 w-10 shrink-0 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors ml-1 active:scale-95">
-              <Paperclip className="w-5 h-5 -rotate-45" />
-            </button>
+            {/* Attachment Button - Anchored to bottom */}
+            <div className="pb-0.5 pl-0.5">
+              <button className="h-10 w-10 shrink-0 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors active:scale-95">
+                <Paperclip className="w-5 h-5 -rotate-45" />
+              </button>
+            </div>
 
             {/* Input Field */}
             <textarea
@@ -308,12 +649,12 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                 }
               }}
               placeholder="Ask about the contract..."
-              className="flex-1 bg-transparent min-h-[40px] max-h-32 py-2 px-2 text-base text-stone-800 placeholder:text-stone-400 font-medium outline-none resize-none leading-relaxed overflow-y-auto custom-scrollbar"
+              className="flex-1 bg-transparent min-h-[44px] max-h-32 py-3 px-2 text-base text-stone-800 placeholder:text-stone-400 font-medium outline-none resize-none leading-relaxed overflow-y-auto custom-scrollbar self-center"
               rows={1}
             />
 
-            {/* Right Actions */}
-            <div className="flex items-center gap-1.5 pr-1.5">
+            {/* Right Actions - Anchored to bottom */}
+            <div className="flex items-center gap-1.5 pr-1.5 pb-0.5">
               <button className="h-10 w-10 shrink-0 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-600 transition-colors active:scale-95">
                 <Mic className="w-5 h-5" />
               </button>
@@ -334,8 +675,8 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
           {/* Improved Soft Glow/Fade */}
           <div className="absolute -inset-0.5 bg-gradient-to-r from-transparent via-stone-200/40 to-transparent rounded-[2.2rem] -z-10 blur-xl opacity-0 group-hover/input:opacity-100 transition-opacity duration-700" />
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   )
 }
 

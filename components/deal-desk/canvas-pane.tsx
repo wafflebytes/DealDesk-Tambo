@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { LayoutGrid, Plus, ChevronUp, Table, BarChart3, Kanban, Layers, Sparkles, Pin, Check, Search } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { LayoutGrid, Plus, ChevronUp, Table, BarChart3, Kanban, Layers, Sparkles, Pin, Check, Search, X } from "lucide-react"
 
 import { useDroppable } from "@dnd-kit/core"
 
@@ -15,19 +15,29 @@ import { ScopingCard } from "./scoping-card"
 export function CanvasPane({
   forceExpanded,
   items = [],
+  storedComponents = {},
   onUpdateItem,
-  onAutoLayout
+  onRemoveItem,
+  onAutoLayout,
+  onFocusItem
 }: {
   forceExpanded?: boolean,
   items?: { id: string; colSpan: number }[],
+  storedComponents?: Record<string, React.ReactNode>,
   onUpdateItem?: (id: string, span: number) => void,
-  onAutoLayout?: () => void
+  onRemoveItem?: (id: string) => void,
+  onAutoLayout?: () => void,
+  onFocusItem?: (id: string | null) => void
 }) {
   const [activeTab, setActiveTab] = useState("analysis")
   // Pin and Hover State
   const [isPinned, setIsPinned] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [hasAutoPinned, setHasAutoPinned] = useState(false)
+
+  // iOS-style edit/wiggle mode
+  const [isEditMode, setIsEditMode] = useState(false)
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const { isOver, setNodeRef } = useDroppable({
     id: 'canvas-drop-zone',
@@ -43,16 +53,57 @@ export function CanvasPane({
     }
   }, [hasContent, hasAutoPinned])
 
-  // Mock rendering of dropped items
+  // Long press handlers for edit mode
+  const handleLongPressStart = () => {
+    longPressTimerRef.current = setTimeout(() => {
+      setIsEditMode(true)
+    }, 800) // 800ms for long press
+  }
+
+  const handleLongPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }
+
+  // Handle click to focus (if not editing and not dragging)
+  // Handle click to focus (if not editing and not dragging)
+  const handleItemClick = (id: string) => {
+    if (!isEditMode && !resizingItem && onFocusItem) {
+      onFocusItem(id)
+    }
+  }
+
+  // Exit edit mode when clicking outside or pressing escape
+  const handleExitEditMode = () => {
+    setIsEditMode(false)
+  }
+
+  // Render dropped items - prefer stored component, fall back to ID-based rendering
   const renderItem = (id: string) => {
-    // Very basic parsing for demo
-    if (id.includes('risk-radar')) return <RiskRadar />
-    if (id.includes('clause-tuner')) return <ClauseTuner />
-    if (id.includes('checklist')) return <ExtractionChecklist />
-    if (id.includes('definitions')) return <DefinitionBank />
-    if (id.includes('explainer')) return <DefinitionExplainer term="Term" /> // Mock term
-    if (id.includes('scoping')) return <ScopingCard />
-    return <div className="p-4 bg-white rounded-xl border border-dashed border-stone-300">Unknown Component</div>
+    console.log('[Canvas] renderItem called with ID:', id, 'hasStoredComponent:', !!storedComponents[id])
+
+    // First, check if we have a stored component from the drag
+    if (storedComponents[id]) {
+      return (
+        <div className="w-full">
+          {storedComponents[id]}
+        </div>
+      )
+    }
+
+    // Fallback: try to match by ID pattern (for legacy/manual testing)
+    const lowerId = id.toLowerCase()
+    if (lowerId.includes('risk-radar') || lowerId.includes('riskradar') || lowerId.includes('risk')) return <RiskRadar />
+    if (lowerId.includes('clause-tuner') || lowerId.includes('clausetuner') || lowerId.includes('clause')) return <ClauseTuner />
+    if (lowerId.includes('extraction-checklist') || lowerId.includes('checklist') || lowerId.includes('extraction') || lowerId.includes('obligation')) return <ExtractionChecklist />
+    if (lowerId.includes('knowledge-bank') || lowerId.includes('knowledgebank') || lowerId.includes('definition') || lowerId.includes('knowledge')) return <DefinitionBank />
+    if (lowerId.includes('explainer')) return <DefinitionExplainer term="Term" />
+    if (lowerId.includes('scoping') || lowerId.includes('scoping-card')) return <ScopingCard />
+
+    console.warn('[Canvas] Unknown component ID:', id)
+    return <div className="p-4 bg-white rounded-xl border border-dashed border-stone-300">Unknown Component: {id}</div>
   }
 
   const tabs = [
@@ -270,62 +321,120 @@ export function CanvasPane({
           </div>
         ) : (
           /* Grid Layout - 12 Columns */
-          <div className="grid grid-cols-12 gap-6 pb-20 relative">
-            {displayItems.map((item, index) => {
-              // Resize state
-              const isResizingThis = resizingItem?.id === item.id
-              const isResizingAny = resizingItem !== null
-              const displaySpan = isResizingThis ? resizingItem.currentSpan : item.colSpan
+          <div className="relative">
+            {/* Edit Mode Overlay - Bottom Callout */}
+            {/* Edit Mode Overlay - Bottom Callout */}
+            {isEditMode && (
+              <div className="fixed inset-0 z-[100] pointer-events-none">
+                {/* Semi-transparent overlay */}
+                <div className="absolute inset-0 bg-stone-900/5" />
 
-              return (
-                <div
-                  key={index}
-                  className={`relative group/item transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${isResizingThis ? 'z-50' : 'z-auto'}`}
-                  style={{
-                    gridColumn: `span ${displaySpan}`,
-                  }}
-                >
-                  {/* 
+                {/* Bottom Callout */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto w-[90%] max-w-md">
+                  <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-stone-200/60 p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-50 to-red-100 ring-1 ring-red-200/50 flex items-center justify-center shadow-inner">
+                        <X className="w-5 h-5 text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-stone-800 tracking-tight">Edit Mode</p>
+                        <p className="text-[11px] text-stone-500">Tap × on any card to remove</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleExitEditMode}
+                      className="px-5 py-2.5 rounded-xl text-sm font-bold shadow-[0_2px_4px_rgba(0,0,0,0.15),0_1px_0_rgba(255,255,255,0.2)_inset] bg-gradient-to-b from-stone-800 to-stone-900 text-white active:scale-95 transition-all"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
+
+            <div className="grid grid-cols-12 gap-6 pb-20 relative">
+              {displayItems.map((item, index) => {
+                // Resize state
+                const isResizingThis = resizingItem?.id === item.id
+                const isResizingAny = resizingItem !== null
+                const displaySpan = isResizingThis ? resizingItem.currentSpan : item.colSpan
+
+                return (
+                  <div
+                    key={index}
+                    className={`relative group/item transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] ${isResizingThis ? 'z-50' : 'z-auto'} ${isEditMode ? 'animate-wiggle' : ''}`}
+                    style={{
+                      gridColumn: `span ${displaySpan}`,
+                    }}
+                    onMouseDown={handleLongPressStart}
+                    onMouseUp={handleLongPressEnd}
+                    onMouseLeave={handleLongPressEnd}
+                    onTouchStart={handleLongPressStart}
+                    onTouchEnd={handleLongPressEnd}
+                  >
+                    {/* 
                    CONTENT RENDERING 
                    If resizing ANY item, turn others into grey ghosts for "collage" feel.
                    If resizing THIS item, show it fully with the Green Overlay.
+                   Components are scaled to 75% to fit canvas.
                 */}
-                  <div className={`relative z-10 h-full transition-opacity duration-200 ${isResizingAny && !isResizingThis ? 'opacity-0' : 'opacity-100'}`}>
-                    {renderItem(item.id)}
-                  </div>
-
-                  {/* GREY GHOST (Simplified Placeholder for Reflow Animation) */}
-                  {isResizingAny && !isResizingThis && (
-                    <div className="absolute inset-0 z-20 bg-stone-100 border border-stone-200 rounded-xl flex items-center justify-center">
-                      <div className="w-8 h-1 bg-stone-300 rounded-full opacity-50" />
-                    </div>
-                  )}
-
-                  {/* ACTIVE RESIZE FEEDBACK (Teal Ghost) */}
-                  {isResizingThis && (
-                    <div className="absolute inset-0 z-0 bg-[#20808D]/5 border-2 border-dashed border-[#20808D]/40 rounded-xl pointer-events-none animate-pulse" />
-                  )}
-
-                  {/* Resize Handle - Right Edge trigger (Only visible if NOT resizing something else) */}
-                  {!isResizingAny && (
                     <div
-                      className="absolute top-2 right-[-10px] bottom-2 w-6 cursor-col-resize z-50 group-hover/item:opacity-100 opacity-0 transition-opacity flex items-center justify-center"
-                      onMouseDown={(e) => handleResizeStart(e, item.id, item.colSpan)}
+                      className={`relative z-10 h-full transition-opacity duration-200 ${isResizingAny && !isResizingThis ? 'opacity-0' : 'opacity-100'}`}
+                      onClick={() => handleItemClick(item.id)}
                     >
-                      {/* Handle Visual */}
-                      <div className="w-1.5 h-8 rounded-full bg-stone-300 hover:bg-emerald-400 shadow-sm transition-colors" />
+                      <div className="origin-top-left scale-[0.9] w-[111%] cursor-pointer hover:ring-2 hover:ring-[#20808D]/20 hover:shadow-lg rounded-xl transition-all duration-300">
+                        {renderItem(item.id)}
+                      </div>
                     </div>
-                  )}
-                </div>
-              )
-            })}
 
-            {/* Drop Placeholder */}
-            {isOver && (
-              <div className="col-span-12 border-2 border-dashed border-[#20808D]/40 bg-[#20808D]/5 rounded-2xl h-40 flex items-center justify-center animate-pulse">
-                <p className="text-[#20808D] text-sm font-medium">Drop here</p>
-              </div>
-            )}
+                    {/* Dismiss X Button - Only visible in edit mode */}
+                    {onRemoveItem && isEditMode && !isResizingAny && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRemoveItem(item.id)
+                        }}
+                        className="absolute -top-2 -right-2 z-30 w-6 h-6 rounded-full bg-stone-700 hover:bg-red-500 text-white transition-all duration-200 flex items-center justify-center shadow-lg hover:scale-110"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {/* GREY GHOST (Simplified Placeholder for Reflow Animation) */}
+                    {isResizingAny && !isResizingThis && (
+                      <div className="absolute inset-0 z-20 bg-stone-100 border border-stone-200 rounded-xl flex items-center justify-center">
+                        <div className="w-8 h-1 bg-stone-300 rounded-full opacity-50" />
+                      </div>
+                    )}
+
+                    {/* ACTIVE RESIZE FEEDBACK (Teal Ghost) */}
+                    {isResizingThis && (
+                      <div className="absolute inset-0 z-0 bg-[#20808D]/5 border-2 border-dashed border-[#20808D]/40 rounded-xl pointer-events-none animate-pulse" />
+                    )}
+
+                    {/* Resize Handle - Right Edge trigger (Only visible if NOT resizing something else) */}
+                    {!isResizingAny && (
+                      <div
+                        className="absolute top-2 right-[-10px] bottom-2 w-6 cursor-col-resize z-50 group-hover/item:opacity-100 opacity-0 transition-opacity flex items-center justify-center"
+                        onMouseDown={(e) => handleResizeStart(e, item.id, item.colSpan)}
+                      >
+                        {/* Handle Visual */}
+                        <div className="w-1.5 h-8 rounded-full bg-stone-300 hover:bg-emerald-400 shadow-sm transition-colors" />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Drop Placeholder */}
+              {isOver && (
+                <div className="col-span-12 border-2 border-dashed border-[#20808D]/40 bg-[#20808D]/5 rounded-2xl h-40 flex items-center justify-center animate-pulse">
+                  <p className="text-[#20808D] text-sm font-medium">Drop here</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

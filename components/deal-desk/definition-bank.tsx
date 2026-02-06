@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Book, Search, ArrowUpDown, Tag, GripVertical, Link2, Filter, ArrowRight } from "lucide-react"
+import { Search, Filter, Link2, ArrowRight } from "lucide-react"
+import { useTamboComponentState } from "@tambo-ai/react"
+import { DefinitionBankData } from "@/components/genui/schemas"
 
 type Definition = {
     term: string
@@ -9,37 +11,20 @@ type Definition = {
     tags: string[]
 }
 
-const definitionsData: Definition[] = [
-    {
-        term: "Confidential Information",
-        definition: "Means all non-public info disclosed by a party...",
-        tags: ["Legal"]
-    },
-    {
-        term: "Services",
-        definition: "Means the professional services described in SOW.",
-        tags: ["Ops"]
-    },
-    {
-        term: "Effective Date",
-        definition: "Means the date first written above.",
-        tags: ["Date"]
-    },
-]
+const defaultDefinitions: Definition[] = []
 
-interface DefinitionBankProps {
-    onExplain?: (term: string) => void
-}
-
-export function DefinitionBank({ onExplain }: DefinitionBankProps) {
-    const [searchTerm, setSearchTerm] = useState("")
-    const [expandedTerm, setExpandedTerm] = useState<string | null>(null)
+export function DefinitionBank(props: Partial<DefinitionBankData> & { onExplain?: (term: string) => void }) {
+    const [searchTerm, setSearchTerm] = useTamboComponentState("searchTerm", "")
+    const [expandedTerm, setExpandedTerm] = useTamboComponentState<string | null>("expandedTerm", null)
     const [isFilterOpen, setIsFilterOpen] = useState(false)
     const [activeTag, setActiveTag] = useState<string | null>(null)
 
-    const uniqueTags = Array.from(new Set(definitionsData.flatMap(d => d.tags)))
+    // Use props if available, otherwise fall back to default (or empty)
+    const definitions = (props.definitions as Definition[]) || defaultDefinitions
 
-    const filteredDefs = definitionsData.filter(d => {
+    const uniqueTags = Array.from(new Set(definitions.flatMap(d => d.tags)))
+
+    const filteredDefs = definitions.filter(d => {
         const matchesSearch = d.term.toLowerCase().includes(searchTerm.toLowerCase())
         const matchesTag = activeTag ? d.tags.includes(activeTag) : true
         return matchesSearch && matchesTag
@@ -59,7 +44,7 @@ export function DefinitionBank({ onExplain }: DefinitionBankProps) {
             <div className="px-5 py-4 border-b border-stone-100 bg-gradient-to-b from-white to-stone-50/50 flex items-center justify-between relative">
                 <div className="flex items-center gap-2.5">
                     <div className="w-1.5 h-4 bg-sky-500 rounded-full" />
-                    <h3 className="font-serif text-base text-stone-900">Definition Bank</h3>
+                    <h3 className="font-serif text-base text-stone-900">Knowledge Bank</h3>
                 </div>
                 <div className="flex gap-2 transition-transform duration-300 ease-out group-hover:-translate-x-8 will-change-transform">
                     <button

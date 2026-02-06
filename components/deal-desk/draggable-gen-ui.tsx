@@ -8,12 +8,18 @@ interface DraggableGenUIProps {
     id: string
     children: React.ReactNode
     className?: string
+    type?: string
+    renderedComponent?: React.ReactNode // The actual component to render on canvas
 }
 
-export function DraggableGenUI({ id, children, className, disableDrag = false }: DraggableGenUIProps & { disableDrag?: boolean }) {
+export function DraggableGenUI({ id, children, className, type, renderedComponent, disableDrag = false }: DraggableGenUIProps & { disableDrag?: boolean }) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: id,
         disabled: disableDrag,
+        data: {
+            type: type || 'genui',
+            renderedComponent: renderedComponent || children, // Pass the component for canvas to use
+        },
     })
 
     // Only apply transform if we are NOT using a DragOverlay, or if we want the item to move. 

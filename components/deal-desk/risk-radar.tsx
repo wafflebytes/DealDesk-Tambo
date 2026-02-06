@@ -1,221 +1,394 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { GripVertical, ChevronDown, Link2 } from "lucide-react"
+import { useTamboComponentState } from "@tambo-ai/react";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  Legend
+} from "recharts";
+import { z } from "zod";
+import { cn } from "@/lib/utils";
+import { DealRiskSchema } from "@/components/genui/schemas";
+import { CheckCircle, AlertTriangle, ShieldCheck, ArrowRight, Wand2, ChevronDown, ChevronUp } from "lucide-react";
+import * as React from "react";
+import { Slider } from "@/components/ui/slider";
 
-const followUps = [
-  "How does this compare to market data?",
-  "Draft a waiver for the liability clause",
-  "Show similar clauses from past contracts",
-]
+export type RiskRadarProps = z.infer<typeof DealRiskSchema> &
+  React.HTMLAttributes<HTMLDivElement> & {
+    overallScore?: number;
+  };
 
-export function RiskRadar() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
+type RiskRadarState = {
+  // Overrides for risk scores (user adjusted)
+  riskOverrides: Record<string, number>;
+  // Set of resolved risks
+  resolvedRisks: string[];
+  // Expanded card for details
+  expandedCategory: string | null;
+  // Sections collapse state
+  isFactorsCollapsed: boolean;
+};
 
-  const [data, setData] = useState({
-    Liability: 0.9,
-    IP: 0.4,
-    Term: 0.6,
-    Payment: 0.5,
-  })
+// Mock suggestions for the demo
+const FAILSAFE_SUGGESTIONS: Record<string, string> = {
+  "Liability": "Cap liability at 2x fees paid in the last 12 months instead of unlimited. Add a super cap for data breach.",
+  "Indemnification": "Limit IP indemnification to final deliverables only. Remove 'all claims' broad language.",
+  "Termination": "Add a 30-day cure period before termination for cause. Ensure mutual termination for convenience.",
+  "Payment": "Adjust payment terms to Net 45 to align with company standard. Add late fee cap.",
+  "IP Rights": "Retain background IP rights. Grant license only for deliverables upon full payment.",
+  "Confidentiality": "Limit duration to 3 years post-term. Exclude standard residuals.",
+  "SLA": "Reduce uptime guarantee to 99.5% excluding maintenance windows. Cap service credits at 10% monthly fees."
+};
 
-  const centerX = 80
-  const centerY = 80
-  const radius = 55
+export function RiskRadar({
+  risks,
+  followUps,
+  overallScore,
+  className,
+  ...props
+}: RiskRadarProps) {
+  const [state, setState] = useTamboComponentState<RiskRadarState>(
+    "risk-radar-premium-v2",
+    {
+      riskOverrides: {},
+      resolvedRisks: [],
+      expandedCategory: null,
+      isFactorsCollapsed: true
+    }
+  );
 
-  const angles = [
-    { label: "Liability", value: data.Liability, angle: -90 },
-    { label: "IP", value: data.IP, angle: 0 },
-    { label: "Term", value: data.Term, angle: 90 },
-    { label: "Payment", value: data.Payment, angle: 180 },
-  ]
+  const safeRisks = risks || {};
 
-  const handleSliderChange = (label: string, newVal: number) => {
-    setData(prev => ({ ...prev, [label]: newVal }))
-  }
+  // Merge initial risks with overrides
+  const currentRisks = { ...safeRisks, ...(state?.riskOverrides || {}) };
+  const riskValues = Object.values(currentRisks);
 
-  const points = angles.map(({ value, angle }) => {
-    const rad = (angle * Math.PI) / 180
-    const x = centerX + Math.cos(rad) * radius * value
-    const y = centerY + Math.sin(rad) * radius * value
-    return { x, y, value }
-  })
+  const hasResolvedAll = Object.keys(currentRisks).length > 0 &&
+    Object.keys(currentRisks).every(k => state?.resolvedRisks.includes(k));
 
-  const polygonPoints = points.map(p => `${p.x},${p.y}`).join(' ')
+  const calculatedScore = riskValues.length > 0
+    ? Math.round((riskValues.reduce((a, b) => a + (1 - b), 0) / riskValues.length) * 100)
+    : 0;
 
-  const gridPoints = [1, 0.66, 0.33].map(scale =>
-    angles.map(({ angle }) => {
-      const rad = (angle * Math.PI) / 180
-      const x = centerX + Math.cos(rad) * radius * scale
-      const y = centerY + Math.sin(rad) * radius * scale
-      return `${x},${y}`
-    }).join(' ')
-  )
+  const displayScore = hasResolvedAll ? 100 : calculatedScore;
+
+  // Grade Calculation
+  const getGrade = (score: number) => {
+    if (score >= 95) return { grade: "A+", color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" };
+    if (score >= 90) return { grade: "A", color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" };
+    if (score >= 80) return { grade: "B", color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" };
+    if (score >= 70) return { grade: "C", color: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200" };
+    if (score >= 60) return { grade: "D", color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" };
+    return { grade: "F", color: "text-rose-600", bg: "bg-rose-50", border: "border-rose-200" };
+  };
+
+  const currentGrade = getGrade(displayScore);
+
+  // Handlers
+  const toggleExpand = (category: string) => {
+    setState({
+      ...state!,
+      expandedCategory: state?.expandedCategory === category ? null : category
+    });
+  };
+
+  const toggleFactors = () => {
+    setState({
+      ...state!,
+      isFactorsCollapsed: !state?.isFactorsCollapsed
+    });
+  };
+
+  const applyAiFix = () => {
+    // "Balance" sliders: Set all to a low risk value (e.g. 0.15)
+    const balancedOverrides: Record<string, number> = {};
+    Object.keys(safeRisks).forEach(cat => {
+      balancedOverrides[cat] = 0.15;
+    });
+
+    setState({
+      ...state!,
+      riskOverrides: balancedOverrides,
+      isFactorsCollapsed: false // Expand to show the change
+    });
+  };
+
+  const applyFix = (category: string) => {
+    // "Applying fix" means setting risk to 0 (resolved)
+    const current = state?.resolvedRisks || [];
+    const isResolved = current.includes(category);
+
+    if (!isResolved) {
+      setState({
+        ...state!,
+        riskOverrides: state?.riskOverrides || {},
+        resolvedRisks: [...current, category],
+        expandedCategory: null // Close after fixing
+      });
+    }
+  };
+
+  const undoFix = (category: string) => {
+    const current = state?.resolvedRisks || [];
+    setState({
+      ...state!,
+      riskOverrides: state?.riskOverrides || {},
+      resolvedRisks: current.filter(c => c !== category),
+      expandedCategory: null
+    });
+  };
+
+  const updateRiskScore = (category: string, newVal: number[]) => {
+    const value = newVal[0] / 100;
+    setState({
+      ...state!,
+      riskOverrides: {
+        ...(state?.riskOverrides || {}),
+        [category]: value
+      }
+    });
+  };
+
+  // Chart Data Preparation
+  const chartData = Object.entries(currentRisks).map(([category, score]) => {
+    const isResolved = state?.resolvedRisks.includes(category);
+    return {
+      category,
+      value: isResolved ? 0 : score * 100, // Current Risk Level
+      optimal: 10, // "Safe Harbor" (always small risk)
+      fullMark: 100,
+    };
+  });
 
   return (
-    <div className="rounded-xl card-skeu group relative overflow-hidden min-w-0 w-full">
+    <div className={cn("rounded-2xl card-skeu overflow-hidden w-full bg-white ring-1 ring-stone-900/5", className)} {...props}>
+      {/* 1. Header Section - Standard Skeuomorphic (Matches ClauseTuner) */}
+      <div className="px-5 py-4 border-b border-stone-100 bg-gradient-to-b from-white to-stone-50/50 flex items-center justify-between">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl inset-skeu flex items-center justify-center bg-stone-50">
+            <ShieldCheck className="w-5 h-5 text-[#20808D]" />
+          </div>
+          <div>
+            <h2 className="font-serif text-lg font-bold text-stone-900 leading-tight">Risk Assessment</h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">Deal Health</span>
+              {currentGrade.grade !== 'F' && (
+                <span className={cn("text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-md", currentGrade.bg, currentGrade.color)}>
+                  {currentGrade.grade} Grade
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
 
-
-      {/* Thread Indicator */}
-      <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-3 h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-      <div className="absolute -left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Link2 className="w-3 h-3 text-amber-500" />
+        <div className="flex flex-col items-end gap-2">
+          <div className={cn(
+            "px-3 py-1 rounded-lg inset-skeu bg-white flex items-center gap-2",
+            currentGrade.border
+          )}>
+            <span className={cn("text-xl font-bold font-serif tabular-nums", currentGrade.color)}>
+              {displayScore}
+            </span>
+            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">%</span>
+          </div>
+        </div>
       </div>
+      <div className="p-0">
 
-      {/* Header */}
-      <div className="px-5 py-3 border-b border-stone-100 bg-gradient-to-b from-white to-stone-50/50 flex items-center gap-2.5">
-        <div className="w-1.5 h-4 bg-[#20808D] rounded-full" />
-        <h3 className="font-serif text-base text-stone-900">Risk Analysis</h3>
-      </div>
+        {/* Radar Chart Container */}
+        <div className="bg-gradient-to-b from-stone-50/30 to-white border-b border-stone-100 p-4 relative">
+          <div className="h-[260px] w-full relative">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+                  <PolarGrid gridType="polygon" stroke="#e7e5e4" strokeDasharray="3 3" />
+                  <PolarAngleAxis
+                    dataKey="category"
+                    tick={{ fill: '#78716c', fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+                  />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
 
-      {/* Content */}
-      <div className="p-4 bg-gradient-to-b from-stone-50/30 to-transparent">
-        <svg viewBox="0 0 160 160" className="w-full max-w-[180px] mx-auto">
-          {/* Grid lines */}
-          {gridPoints.map((gp, i) => (
-            <polygon
-              key={i}
-              points={gp}
-              fill="none"
-              stroke="#e7e5e4"
-              strokeWidth="1"
-            />
-          ))}
+                  {/* Safe Harbor Overlay (Gray/Green Zone) */}
+                  <Radar
+                    name="Safe Harbor"
+                    dataKey="optimal"
+                    stroke="#10b981"
+                    strokeWidth={1}
+                    strokeOpacity={0.5}
+                    fill="#10b981"
+                    fillOpacity={0.1}
+                  />
 
-          {/* Axis lines */}
-          {angles.map(({ angle }, i) => {
-            const rad = (angle * Math.PI) / 180
-            const x = centerX + Math.cos(rad) * radius
-            const y = centerY + Math.sin(rad) * radius
+                  {/* Current Risk (Dynamic) */}
+                  <Radar
+                    name="Current Risk"
+                    dataKey="value"
+                    stroke="#20808D"
+                    strokeWidth={3}
+                    fill="#20808D"
+                    fillOpacity={0.25}
+                  />
+                  <Tooltip
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e7e5e4', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', fontSize: '12px' }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: '10px', paddingTop: '10px', color: '#78716c' }}
+                    iconSize={8}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
+                <ShieldCheck className="w-12 h-12 mb-2 opacity-20" />
+                <p className="text-xs font-medium uppercase tracking-widest">No Risk Data</p>
+              </div>
+            )}
+          </div>
+
+          {/* AI Fix Header Action */}
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={applyAiFix}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-stone-200 hover:border-[#20808D] text-stone-600 hover:text-[#20808D] text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm active:scale-95 transition-all"
+            >
+              <Wand2 className="w-3 h-3" />
+              AI Fix
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Action List */}
+        <div className="divide-y divide-stone-100">
+          {/* Section Header */}
+          <div
+            onClick={toggleFactors}
+            className="px-4 py-3 bg-stone-50/30 flex items-center justify-between cursor-pointer group/header"
+          >
+            <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">Risk Factors</h4>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-stone-300 group-hover/header:text-stone-500 transition-colors">
+                {state?.isFactorsCollapsed ? 'View All' : 'Collapse'}
+              </span>
+              {state?.isFactorsCollapsed ? <ChevronDown className="w-3 h-3 text-stone-300" /> : <ChevronUp className="w-3 h-3 text-stone-300" />}
+            </div>
+          </div>
+
+          {!state?.isFactorsCollapsed && Object.entries(currentRisks).map(([category, score]) => {
+            const isResolved = state?.resolvedRisks.includes(category);
+            const isExpanded = state?.expandedCategory === category;
+            const riskLevel = score >= 0.7 ? 'Critical' : score >= 0.4 ? 'Medium' : 'Low';
+
             return (
-              <line
-                key={i}
-                x1={centerX}
-                y1={centerY}
-                x2={x}
-                y2={y}
-                stroke="#d6d3d1"
-                strokeWidth="1"
-              />
+              <div key={category} className={cn(
+                "bg-white transition-colors hover:bg-stone-50/50 group/row",
+                isExpanded && "bg-stone-50"
+              )}>
+                <div
+                  className="py-3 px-4 flex items-center justify-between group/item"
+                >
+                  <div className="flex items-center gap-3 w-[40%]">
+                    <div
+                      onClick={() => toggleExpand(category)}
+                      className="cursor-pointer flex items-center gap-3"
+                    >
+                      <div className={cn(
+                        "w-2 h-2 rounded-full ring-2 ring-offset-2 transition-colors shrink-0",
+                        isResolved ? "bg-stone-300 ring-stone-100" :
+                          riskLevel === 'Critical' ? "bg-rose-500 ring-rose-100" :
+                            riskLevel === 'Medium' ? "bg-amber-400 ring-amber-100" :
+                              "bg-emerald-400 ring-emerald-100"
+                      )} />
+                      <span className={cn(
+                        "font-medium text-sm text-stone-700 truncate",
+                        isResolved && "text-stone-400 line-through"
+                      )}>{category}</span>
+                    </div>
+                  </div>
+
+                  {/* Inline Controls (Visible) */}
+                  {!isResolved ? (
+                    <div className="flex items-center gap-4 flex-1 justify-end">
+                      <div className="w-24 on-drag-stop-propagation" onMouseDown={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
+                        <Slider
+                          value={[score * 100]}
+                          max={100}
+                          step={1}
+                          onValueChange={(val) => updateRiskScore(category, val)}
+                          className="py-1"
+                        />
+                      </div>
+                      <span className={cn(
+                        "text-xs font-bold tabular-nums w-8 text-right",
+                        riskLevel === 'Critical' ? "text-rose-600" : "text-stone-500"
+                      )}>{Math.round(score * 100)}%</span>
+
+                      <button onClick={() => toggleExpand(category)} className="p-1 hover:bg-stone-100 rounded-md transition-colors">
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-300" />}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" /> Resolved
+                      </span>
+                      <button onClick={() => toggleExpand(category)} className="p-1 hover:bg-stone-100 rounded-md transition-colors">
+                        {isExpanded ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-300" />}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {isExpanded && (
+                  <div className="px-4 pb-4 animate-in slide-in-from-top-1 fade-in duration-200">
+                    <div className="p-3 bg-stone-50 rounded-xl inset-skeu border border-stone-200/50">
+
+                      {!isResolved ? (
+                        <>
+                          {/* AI Recommendation - Compact */}
+                          {/* Compact Recommendation Only */}
+                          <div className="flex gap-3 items-start">
+                            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100 mt-0.5">
+                              <Wand2 className="w-3.5 h-3.5 text-blue-500" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs text-stone-600 leading-relaxed font-medium mb-1.5">
+                                {FAILSAFE_SUGGESTIONS[category] || `Consider adding a cap.`}
+                              </p>
+                              <button
+                                onClick={() => applyFix(category)}
+                                className="group flex items-center gap-1.5 text-[10px] font-bold text-[#20808D] hover:text-[#1a6b76] uppercase tracking-wider transition-colors"
+                              >
+                                <span>Use Smart Fix</span>
+                                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-2">
+                          <p className="text-xs text-stone-500 mb-3">This risk has been mitigated by recent changes.</p>
+                          <button
+                            onClick={() => undoFix(category)}
+                            className="text-xs font-semibold text-stone-400 hover:text-stone-600 underline decoration-stone-300 underline-offset-4"
+                          >
+                            Revert Changes
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+                }
+              </div>
             )
           })}
-
-          {/* Data polygon */}
-          <polygon
-            points={polygonPoints}
-            fill="rgba(28,25,23,0.05)"
-            stroke="#1c1917"
-            strokeWidth="2"
-          />
-
-          {/* Data points */}
-          {points.map((point, i) => (
-            <g key={i}>
-              {point.value > 0.7 && (
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={8}
-                  fill="rgba(220,38,38,0.15)"
-                />
-              )}
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r={point.value > 0.7 ? 5 : 4}
-                fill={point.value > 0.7 ? "#dc2626" : "#1c1917"}
-                stroke="white"
-                strokeWidth="2"
-              />
-            </g>
-          ))}
-
-          {/* Labels */}
-          <text x={centerX} y="12" textAnchor="middle" className="text-[10px] fill-stone-500 tracking-tight font-medium" style={{ fontFamily: 'var(--font-geist)' }}>Liability</text>
-          <text x="152" y={centerY + 4} textAnchor="end" className="text-[10px] fill-stone-500 tracking-tight font-medium" style={{ fontFamily: 'var(--font-geist)' }}>IP</text>
-          <text x={centerX} y="156" textAnchor="middle" className="text-[10px] fill-stone-500 tracking-tight font-medium" style={{ fontFamily: 'var(--font-geist)' }}>Term</text>
-          <text x="8" y={centerY + 4} textAnchor="start" className="text-[10px] fill-stone-500 tracking-tight font-medium" style={{ fontFamily: 'var(--font-geist)' }}>Payment</text>
-        </svg>
-
-        <div className="mt-3 flex items-center justify-center gap-4 text-xs tracking-tight">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm" />
-            <span className="text-stone-500 font-medium">High Risk</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#20808D] rounded-full shadow-sm" />
-            <span className="text-stone-500 font-medium">Normal</span>
-          </div>
-        </div>
-
-        {/* Follow-up / Edit Section */}
-        <div className="border-t border-stone-100 p-4 pt-0">
-          {!isEditing ? (
-            <div className="pt-4 space-y-3">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors border border-stone-200 shadow-sm"
-              >
-                Adjust Risk Factors
-              </button>
-
-              <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-                <CollapsibleTrigger className="w-full flex items-center justify-between text-xs text-stone-400 hover:text-stone-600 transition-colors font-medium py-1">
-                  <span className="tracking-tight">View Suggested Follow-ups</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="pt-2 space-y-1.5">
-                    {followUps.map((query, i) => (
-                      <button key={i} className="w-full text-left px-3 py-2 text-xs text-stone-600 rounded-md hover:bg-stone-50 transition-colors truncate">
-                        {query}
-                      </button>
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
-          ) : (
-            <div className="pt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
-              <div className="space-y-3">
-                {angles.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <label className="text-[10px] uppercase font-bold text-stone-400 w-12">{item.label}</label>
-                    <input
-                      type="range"
-                      min="0" max="1" step="0.1"
-                      value={item.value}
-                      onChange={(e) => handleSliderChange(item.label, parseFloat(e.target.value))}
-                      className="flex-1 h-1.5 bg-stone-100 rounded-full appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-stone-400 [&::-webkit-slider-thumb]:appearance-none cursor-pointer hover:[&::-webkit-slider-thumb]:bg-stone-600 transition-colors"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="flex-1 py-2 text-xs font-bold text-stone-500 hover:text-stone-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="flex-[2] py-2 bg-[#20808D] hover:bg-[#165a63] text-white text-xs font-bold rounded-lg shadow-lg shadow-[#20808D]/10 active:scale-[0.98] transition-all"
-                >
-                  Submit Analysis
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
-    </div>
-  )
+    </div >
+  );
 }

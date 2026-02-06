@@ -1,12 +1,16 @@
 "use client"
 
-import React from "react"
-import { RiskRadar } from "@/components/deal-desk/risk-radar"
-import { ClauseTuner } from "@/components/deal-desk/clause-tuner"
-import { ScopingCard } from "@/components/deal-desk/scoping-card"
-import { ExtractionChecklist } from "@/components/deal-desk/extraction-checklist"
-import { DefinitionBank } from "@/components/deal-desk/definition-bank"
-import { DefinitionExplainer } from "@/components/deal-desk/definition-explainer"
+import React, { useState } from "react"
+import dynamic from "next/dynamic"
+
+// GenUI Components - Dynamic Import for SSR Disabling
+const RiskRadar = dynamic(() => import("@/components/deal-desk/risk-radar").then(mod => mod.RiskRadar), { ssr: false })
+const ClauseTuner = dynamic(() => import("@/components/deal-desk/clause-tuner").then(mod => mod.ClauseTuner), { ssr: false })
+const ScopingCard = dynamic(() => import("@/components/deal-desk/scoping-card").then(mod => mod.ScopingCard), { ssr: false })
+const ExtractionChecklist = dynamic(() => import("@/components/deal-desk/extraction-checklist").then(mod => mod.ExtractionChecklist), { ssr: false })
+const DefinitionBank = dynamic(() => import("@/components/deal-desk/definition-bank").then(mod => mod.DefinitionBank), { ssr: false })
+const DefinitionExplainer = dynamic(() => import("@/components/deal-desk/definition-explainer").then(mod => mod.DefinitionExplainer), { ssr: false })
+const DraggableGenUI = dynamic(() => import("@/components/deal-desk/draggable-gen-ui").then(mod => mod.DraggableGenUI), { ssr: false })
 import { BrainCircuit, Layers, ShieldAlert, Sliders, CheckSquare, BookOpen, Search } from "lucide-react"
 
 export default function ComponentGallery() {

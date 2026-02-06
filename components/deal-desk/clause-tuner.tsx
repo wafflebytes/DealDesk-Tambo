@@ -3,20 +3,38 @@
 import { useState } from "react"
 import { Label } from "@/components/ui/label"
 import { GripVertical, Link2 } from "lucide-react"
+import { useTamboComponentState } from "@tambo-ai/react"
+import { ClauseTunerData } from "@/components/genui/schemas"
 
-export function ClauseTuner() {
-  const [capMultiplier, setCapMultiplier] = useState(2.5)
-  const [isMutual, setIsMutual] = useState(false)
+export function ClauseTuner(props: Partial<ClauseTunerData>) {
 
-  const baseAmount = 50000
-  const currentCap = Math.round(baseAmount * capMultiplier)
+  const [multiplier, setMultiplier] = useTamboComponentState(
+    "multiplier",
+    props.multiplier ?? 1,
+    props.multiplier
+  )
 
-  const sliderPercent = ((capMultiplier - 1) / 4) * 100
-  const hasChanged = capMultiplier !== 2.5 || isMutual !== false
+  const [isMutual, setIsMutual] = useTamboComponentState(
+    "isMutual",
+    props.isMutual ?? false,
+    props.isMutual
+  )
+
+  // Use props.currentValue for the base amount - NO hardcoding
+  const baseAmount = props.currentValue ?? 0
+  const clauseTitle = props.clauseType ?? "Clause"
+
+  // Handle potentially undefined states safely
+  const safeMultiplier = multiplier ?? 1
+  const safeIsMutual = isMutual ?? false
+
+  const currentCap = Math.round(baseAmount * safeMultiplier)
+
+  const sliderPercent = ((safeMultiplier - 1) / 4) * 100
+  const hasChanged = safeMultiplier !== (props.multiplier ?? 1) || safeIsMutual !== (props.isMutual ?? false)
 
   return (
-    <div className="rounded-xl card-skeu group relative overflow-hidden min-w-0 w-full">
-
+    <div className="rounded-xl card-skeu group relative overflow-hidden min-w-0 w-full bg-white">
 
       {/* Thread Indicator */}
       <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-3 h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -27,7 +45,7 @@ export function ClauseTuner() {
       {/* Header */}
       <div className="px-5 py-4 border-b border-stone-100 bg-gradient-to-b from-white to-stone-50/50 flex items-center gap-2.5">
         <div className="w-1.5 h-4 bg-[#20808D] rounded-full flex-shrink-0" />
-        <h3 className="font-serif text-base text-stone-900 truncate">Liability Cap</h3>
+        <h3 className="font-serif text-base text-stone-900 truncate">{clauseTitle}</h3>
       </div>
 
       {/* Content */}
@@ -55,8 +73,8 @@ export function ClauseTuner() {
               min={1}
               max={5}
               step={0.1}
-              value={capMultiplier}
-              onChange={(e) => setCapMultiplier(Number(e.target.value))}
+              value={safeMultiplier}
+              onChange={(e) => setMultiplier(Number(e.target.value))}
               className="absolute top-0 left-0 w-full h-11 opacity-0 cursor-pointer z-20"
             />
             {/* Thumb - tactile knob */}
@@ -93,20 +111,20 @@ export function ClauseTuner() {
           {/* Skeuomorphic Toggle */}
           <button
             id="mutual"
-            onClick={() => setIsMutual(!isMutual)}
-            className={`relative w-14 h-8 rounded-full transition-all duration-300 ${isMutual
+            onClick={() => setIsMutual(!safeIsMutual)}
+            className={`relative w-14 h-8 rounded-full transition-all duration-300 ${safeIsMutual
               ? 'bg-[#20808D] shadow-[0_2px_4px_rgba(32,128,141,0.4)_inset]'
               : 'inset-skeu'
               }`}
           >
             <span
-              className={`absolute top-1 w-6 h-6 rounded-full knob-skeu transition-all duration-300 flex items-center justify-center ${isMutual ? 'left-[26px]' : 'left-1'
+              className={`absolute top-1 w-6 h-6 rounded-full knob-skeu transition-all duration-300 flex items-center justify-center ${safeIsMutual ? 'left-[26px]' : 'left-1'
                 }`}
             />
           </button>
         </div>
 
-        {isMutual && (
+        {safeIsMutual && (
           <p className="text-xs text-stone-500 tracking-tight bg-stone-50 rounded-lg p-3 border border-stone-100">
             Both parties will be subject to the same liability cap.
           </p>
