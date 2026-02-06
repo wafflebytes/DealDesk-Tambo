@@ -400,8 +400,14 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
       if (!Component) return null
 
+      const isElicitation = toolCall.function.name === 'ScopingCard';
+
       return (
-        <DraggableGenUI id={`${toolCall.function.name}-${toolCall.id || Math.random()}`} type={toolCall.function.name}>
+        <DraggableGenUI
+          id={`${toolCall.function.name}-${toolCall.id || Math.random()}`}
+          type={toolCall.function.name}
+          disableDrag={isElicitation}
+        >
           {Component}
         </DraggableGenUI>
       )
