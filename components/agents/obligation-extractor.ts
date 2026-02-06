@@ -30,6 +30,10 @@ export type ObligationExtractorOutput = z.infer<typeof ChecklistSchema>;
 async function extractContractObligations(input: ObligationExtractorInput): Promise<ObligationExtractorOutput> {
     const { contractText, priority } = input;
 
+    // 📋 OBLIGATION EXTRACTOR LOG
+    console.log('%c   📋 [Obligation Extractor] Starting extraction...', 'color: #10b981');
+    console.log('%c      Priority filter:', 'color: #10b981', priority);
+
     // Simulate thinking delay
     await new Promise(resolve => setTimeout(resolve, 1200));
 

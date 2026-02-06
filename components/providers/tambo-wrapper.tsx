@@ -19,10 +19,14 @@ import { ExtractionChecklist } from "@/components/deal-desk/extraction-checklist
 import { DefinitionBank } from "@/components/deal-desk/definition-bank"
 import { ScopingCard } from "@/components/deal-desk/scoping-card"
 
-// Tools
+// Tools - Import ALL agent tools for proper orchestration
 import { analyzeContractRisksTool } from "@/components/tools/contract-analysis"
-import { scopingSpecialistTool } from "@/components/agents/scoping-specialist"
+import { coordinatorTool } from "@/components/agents/coordinator"
+import { clauseNegotiatorTool } from "@/components/agents/clause-negotiator"
+import { definitionCuratorTool } from "@/components/agents/definition-curator"
+import { riskAnalystTool } from "@/components/agents/risk-analyst"
 import { obligationExtractorTool } from "@/components/agents/obligation-extractor"
+import { scopingSpecialistTool } from "@/components/agents/scoping-specialist"
 
 // Define components that Tambo can render (GenUI)
 // Each has explicit trigger keywords for better prompt matching
@@ -70,10 +74,15 @@ const tamboComponents = [
 ]
 
 // Define tools available to the agent
+// CRITICAL: Coordinator MUST come first - it orchestrates the others
 const tamboTools = [
-    analyzeContractRisksTool,
-    scopingSpecialistTool,
-    obligationExtractorTool
+    coordinatorTool,           // 🎯 Primary orchestrator - called FIRST
+    analyzeContractRisksTool,  // 📊 External risk analysis tool
+    riskAnalystTool,           // 📊 Risk Analyst sub-agent
+    clauseNegotiatorTool,      // ⚖️ Clause Negotiator sub-agent
+    definitionCuratorTool,     // 📖 Definition Curator sub-agent
+    obligationExtractorTool,   // 📋 Obligation Extractor sub-agent
+    scopingSpecialistTool      // 🎯 Scoping/Elicitation sub-agent
 ]
 
 interface TamboWrapperProps {

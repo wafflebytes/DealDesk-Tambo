@@ -30,6 +30,9 @@ export type RiskAnalystOutput = z.infer<typeof DealRiskSchema>;
 async function analyzeRisks(input: RiskAnalystInput): Promise<RiskAnalystOutput> {
     const { contractText } = input;
 
+    // 📊 RISK ANALYST LOG
+    console.log('%c   📊 [Risk Analyst] Starting analysis...', 'color: #f59e0b');
+
     // Simulate thinking delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 

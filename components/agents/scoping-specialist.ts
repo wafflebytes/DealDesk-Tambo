@@ -142,9 +142,15 @@ function detectScopingScenario(request: string, contextHints?: string): string {
 async function scopeRequest(input: ScopingSpecialistInput): Promise<ScopingSpecialistOutput> {
     const { ambiguousRequest, possibleInterpretations, contextHints, elicitationType } = input;
 
+    // 🎯 SCOPING SPECIALIST LOG
+    console.log('%c   🎯 [Scoping Specialist] Handling ambiguous request...', 'color: #a855f7');
+    console.log('%c      Request:', 'color: #a855f7', ambiguousRequest.substring(0, 50) + '...');
+
     // Detect the scoping scenario
     const scenario = detectScopingScenario(ambiguousRequest, contextHints);
     const template = SCOPING_TEMPLATES[scenario] || SCOPING_TEMPLATES["analysis_type"];
+
+    console.log('%c      Detected Scenario:', 'color: #a855f7', scenario);
 
     // If caller provided specific interpretations, use those instead
     if (possibleInterpretations && possibleInterpretations.length > 0) {
