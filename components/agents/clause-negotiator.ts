@@ -140,6 +140,11 @@ function generateAlternatives(
 async function negotiateClause(input: ClauseNegotiatorInput): Promise<ClauseNegotiatorOutput> {
     const { clauseText, clauseType, contractValue, direction, targetPosition } = input;
 
+    // ⚖️ CLAUSE NEGOTIATOR LOG
+    console.log('%c   ⚖️ [Clause Negotiator] Starting negotiation...', 'color: #ec4899');
+    console.log('%c      Clause Type:', 'color: #ec4899', clauseType);
+    console.log('%c      Direction:', 'color: #ec4899', direction || 'neutral');
+
     // Extract the current value from the clause
     let currentValue = extractValue(clauseText);
 

@@ -131,24 +131,72 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
     generationStage !== 'STREAMING_RESPONSE'
 
   // Update reasoning chain based on generation stage - MCP Agent labels
+  // Uses deduplication to prevent React Strict Mode from causing duplicate steps
   useEffect(() => {
+    // 🔍 DEBUG: Log every stage transition
+    console.log('%c[ReasoningChain] Stage:', 'color: #6366f1', generationStage);
+
     if (generationStage === 'CHOOSING_COMPONENT') {
-      setCurrentReasoning([{ message: "🧠 Maven is analyzing your request...", status: "processing", type: "analysis" }])
-    } else if (generationStage === 'FETCHING_CONTEXT') {
-      setCurrentReasoning(prev => [
-        { ...prev[0], status: "complete" },
-        { message: "📋 Calling Coordinator agent...", status: "processing", tool: "coordinate", type: "tool_call" }
-      ])
-    } else if (generationStage === 'HYDRATING_COMPONENT') {
-      setCurrentReasoning(prev => [
-        ...prev.map(s => ({ ...s, status: "complete" as const })),
-        { message: "⚡ Invoking sub-agent...", status: "processing", type: "analysis" }
-      ])
-    } else if (generationStage === 'STREAMING_RESPONSE') {
-      // Mark all as complete and try to extract orchestrator decision
+      console.log('%c   → Adding analysis step', 'color: #6366f1');
+      // Initialize with analysis step - only if not already set
       setCurrentReasoning(prev => {
-        const completedSteps = prev.map(s => ({ ...s, status: "complete" as const }))
-        return completedSteps
+        if (prev.some(s => s.type === 'analysis')) return prev
+        return [{
+          message: "Maven is analyzing your request...",
+          status: "processing",
+          type: "analysis"
+        }]
+      })
+    } else if (generationStage === 'FETCHING_CONTEXT') {
+      console.log('%c   → Adding coordinator step', 'color: #6366f1');
+      setCurrentReasoning(prev => {
+        // Check if we already added the coordinator step (deduplication)
+        if (prev.some(s => s.tool === 'coordinate')) {
+          console.log('%c   → (skipped - already exists)', 'color: #9ca3af');
+          return prev // Already have coordinator step, don't add another
+        }
+
+        // Complete the analysis step if it exists
+        const updatedSteps = prev.map(s =>
+          s.type === 'analysis' ? { ...s, status: "complete" as const } : s
+        )
+
+        // Add coordinator step
+        return [
+          ...updatedSteps,
+          {
+            message: "📋 Calling Coordinator agent...",
+            status: "processing",
+            tool: "coordinate",
+            type: "tool_call"
+          }
+        ]
+      })
+    } else if (generationStage === 'HYDRATING_COMPONENT') {
+      console.log('%c   → 🎉 HYDRATING_COMPONENT triggered! Adding sub-agent step', 'color: #10b981; font-weight: bold');
+      setCurrentReasoning(prev => {
+        // Check if we already added the sub-agent step (deduplication)
+        if (prev.some(s => s.type === 'sub_agent')) {
+          console.log('%c   → (skipped - already exists)', 'color: #9ca3af');
+          return prev
+        }
+
+        // Complete all previous steps and add sub-agent step
+        const completedSteps = prev.filter(s => s && s.message).map(s => ({ ...s, status: "complete" as const }))
+        return [
+          ...completedSteps,
+          {
+            message: "⚡ Invoking specialized sub-agent...",
+            status: "processing",
+            type: "sub_agent" as const
+          }
+        ]
+      })
+    } else if (generationStage === 'STREAMING_RESPONSE') {
+      console.log('%c   → Marking all steps complete', 'color: #6366f1');
+      // Mark all steps as complete
+      setCurrentReasoning(prev => {
+        return prev.filter(s => s && s.message).map(s => ({ ...s, status: "complete" as const }))
       })
     } else if (generationStage === 'COMPLETE' || generationStage === 'IDLE') {
       // Don't clear reasoning - keep it for persistence
@@ -165,56 +213,115 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
       if (lastMessage?.role === 'assistant' && lastMessage.id && pendingMessageId !== lastMessage.id) {
         setPendingMessageId(lastMessage.id)
 
-        // Try to extract orchestrator decision from tool_calls
-        let reasoningWithDecision = currentReasoning.map(s => ({ ...s, status: "complete" as const }))
+        // 🔍 DEBUG: Log what tool_calls we have
+        console.log('%c[ToolCalls Extractor] Processing message:', 'color: #f59e0b');
+        console.log('%c   Message ID:', 'color: #f59e0b', lastMessage.id);
+        console.log('%c   Tool calls:', 'color: #f59e0b', lastMessage.tool_calls);
+
+        // Filter valid steps and mark complete
+        let reasoningWithDecision = currentReasoning
+          .filter(s => s && s.message)
+          .map(s => ({ ...s, status: "complete" as const }))
 
         if (lastMessage.tool_calls?.length > 0) {
-          const orchestrateCall = lastMessage.tool_calls.find((tc: any) => tc.function?.name === 'orchestrate')
-          if (orchestrateCall) {
-            try {
-              const args = JSON.parse(orchestrateCall.function.arguments || '{}')
-              // Check if there's a result (from function call output)
-              const hasGenUI = lastMessage.tool_calls.some((tc: any) =>
-                ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'KnowledgeBank'].includes(tc.function?.name)
-              )
+          // Sub-agent tool names that Tambo might call directly
+          const SUB_AGENT_TOOLS = ['analyzeContractRisks', 'negotiateClause', 'extractObligations', 'curateDefinitions', 'scopeRequest']
 
-              reasoningWithDecision = [
-                ...reasoningWithDecision,
-                {
-                  message: "Decision made",
-                  status: "complete" as const,
-                  type: "decision" as const,
-                  decision: {
-                    intent: hasGenUI ? 'genui' as const : 'text' as const,
-                    component: hasGenUI ? lastMessage.tool_calls.find((tc: any) =>
-                      ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'KnowledgeBank'].includes(tc.function?.name)
-                    )?.function?.name : undefined,
-                    reasoning: args.reasoning || (hasGenUI ? 'Rendering interactive component' : 'Providing text response')
-                  }
-                }
-              ]
+          // Look for the coordinator tool call
+          const coordinateCall = lastMessage.tool_calls.find((tc: any) =>
+            tc.function?.name === 'coordinate' || tc.function?.name === 'orchestrate'
+          )
+
+          // Look for direct sub-agent tool call
+          const subAgentCall = lastMessage.tool_calls.find((tc: any) =>
+            SUB_AGENT_TOOLS.includes(tc.function?.name)
+          )
+
+          // Check if there's a GenUI component call
+          const genUICall = lastMessage.tool_calls.find((tc: any) =>
+            GENUI_COMPONENTS.includes(tc.function?.name)
+          )
+
+          // 🔍 DEBUG: Log what we found
+          console.log('%c   Coordinate call found:', 'color: #f59e0b', !!coordinateCall);
+          console.log('%c   Sub-agent call found:', 'color: #f59e0b', subAgentCall?.function?.name);
+          console.log('%c   GenUI call found:', 'color: #f59e0b', genUICall?.function?.name);
+          if (coordinateCall?.result) {
+            console.log('%c   Coordinate result:', 'color: #10b981', coordinateCall.result);
+          }
+
+          // Determine the agent that was invoked
+          let agentName: string | undefined
+          let componentName: string | undefined
+          let reasoning: string = 'Processing request'
+
+          if (coordinateCall) {
+            try {
+              const args = JSON.parse(coordinateCall.function.arguments || '{}')
+              // Try to get result if available
+              let result = null
+              if (coordinateCall.result) {
+                try { result = JSON.parse(coordinateCall.result) } catch { }
+              }
+
+              agentName = result?.agent || args.agent || subAgentCall?.function?.name
+              componentName = result?.component || args.component || genUICall?.function?.name
+              reasoning = result?.reasoning || args.reasoning || 'Routing to specialized agent'
             } catch (e) {
-              // Fallback if parsing fails
+              console.error('[TamboChat] Failed to parse coordinator call:', e)
             }
-          } else {
-            // No orchestrate call but has GenUI - infer decision
-            const genUICall = lastMessage.tool_calls.find((tc: any) =>
-              ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'KnowledgeBank'].includes(tc.function?.name)
-            )
-            if (genUICall) {
-              reasoningWithDecision = [
-                ...reasoningWithDecision,
-                {
-                  message: "Decision made",
-                  status: "complete" as const,
-                  type: "decision" as const,
-                  decision: {
-                    intent: 'genui' as const,
-                    component: genUICall.function.name,
-                    reasoning: 'Rendering interactive component'
-                  }
+          } else if (subAgentCall) {
+            // No coordinator call but a sub-agent was called directly
+            agentName = subAgentCall.function.name
+            componentName = genUICall?.function?.name
+            reasoning = 'Direct sub-agent invocation'
+          }
+
+          // Update sub-agent step with actual agent name if we have one
+          if (agentName) {
+            // Check if there's already a generic sub-agent step and update it
+            const subAgentStepIndex = reasoningWithDecision.findIndex(s => s.type === 'sub_agent')
+
+            if (subAgentStepIndex >= 0) {
+              // Update the existing step with the actual agent name
+              console.log('%c   → Updating existing sub-agent step', 'color: #10b981');
+              reasoningWithDecision[subAgentStepIndex] = {
+                ...reasoningWithDecision[subAgentStepIndex],
+                message: `⚡ ${AGENT_DISPLAY_NAMES[agentName] || agentName} processing...`,
+                tool: agentName,
+                agentName: agentName,
+                status: "complete" as const
+              }
+            } else {
+              // FALLBACK: Add new sub-agent step if it was missed during HYDRATING_COMPONENT
+              console.log('%c   → Adding MISSING sub-agent step (fallback)', 'color: #f59e0b');
+
+              // Insert it before the decision step if possible, or just append
+              reasoningWithDecision.push({
+                message: `⚡ ${AGENT_DISPLAY_NAMES[agentName] || agentName} processing...`,
+                status: "complete" as const,
+                type: "sub_agent" as const,
+                tool: agentName,
+                agentName: agentName
+              })
+            }
+          }
+
+          // Add decision step if we have component info
+          if (componentName || agentName) {
+            // Check if decision step already exists
+            if (!reasoningWithDecision.some(s => s.type === 'decision')) {
+              console.log('%c   → Adding decision step', 'color: #10b981');
+              reasoningWithDecision.push({
+                message: "✨ Rendering response",
+                status: "complete" as const,
+                type: "decision" as const,
+                decision: {
+                  intent: componentName ? 'genui' as const : 'text' as const,
+                  component: componentName,
+                  reasoning: reasoning
                 }
-              ]
+              })
             }
           }
         }
@@ -293,8 +400,14 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
       if (!Component) return null
 
+      const isElicitation = toolCall.function.name === 'ScopingCard' || toolCall.function.name === 'scopeRequest';
+
       return (
-        <DraggableGenUI id={`${toolCall.function.name}-${toolCall.id || Math.random()}`} type={toolCall.function.name} data={args}>
+        <DraggableGenUI
+          id={`${toolCall.function.name}-${toolCall.id || Math.random()}`}
+          type={toolCall.function.name}
+          disableDrag={isElicitation}
+        >
           {Component}
         </DraggableGenUI>
       )

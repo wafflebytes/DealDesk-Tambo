@@ -111,6 +111,11 @@ const COMMON_LEGAL_TERMS: Record<string, string> = {
 async function curateDefinitions(input: DefinitionCuratorInput): Promise<DefinitionCuratorOutput> {
     const { contractText, specificTerm, extractAll, category } = input;
 
+    // 📖 DEFINITION CURATOR LOG
+    console.log('%c   📖 [Definition Curator] Starting curation...', 'color: #06b6d4');
+    console.log('%c      Specific Term:', 'color: #06b6d4', specificTerm || '(all terms)');
+    console.log('%c      Category:', 'color: #06b6d4', category || 'all');
+
     // Extract all defined terms from the contract
     const extractedTerms = extractDefinedTerms(contractText);
 
