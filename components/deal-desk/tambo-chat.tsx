@@ -400,7 +400,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
       if (!Component) return null
 
-      const isElicitation = toolCall.function.name === 'ScopingCard';
+      const isElicitation = toolCall.function.name === 'ScopingCard' || toolCall.function.name === 'scopeRequest';
 
       return (
         <DraggableGenUI
