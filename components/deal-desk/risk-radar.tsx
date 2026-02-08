@@ -32,6 +32,8 @@ type RiskRadarState = {
   expandedCategory: string | null;
   // Sections collapse state
   isFactorsCollapsed: boolean;
+  // Tracking if changes were made
+  hasChanges: boolean;
 };
 
 // Mock suggestions for the demo
@@ -58,7 +60,8 @@ export function RiskRadar({
       riskOverrides: {},
       resolvedRisks: [],
       expandedCategory: null,
-      isFactorsCollapsed: true
+      isFactorsCollapsed: true,
+      hasChanges: false
     }
   );
 
@@ -75,7 +78,7 @@ export function RiskRadar({
     ? Math.round((riskValues.reduce((a, b) => a + (1 - b), 0) / riskValues.length) * 100)
     : 0;
 
-  const displayScore = hasResolvedAll ? 100 : calculatedScore;
+  const displayScore = overallScore !== undefined ? overallScore : (hasResolvedAll ? 100 : calculatedScore);
 
   // Grade Calculation
   const getGrade = (score: number) => {
@@ -104,6 +107,15 @@ export function RiskRadar({
     });
   };
 
+  const handleDone = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setState({
+      ...state!,
+      isFactorsCollapsed: true,
+      hasChanges: false
+    });
+  };
+
   const applyAiFix = () => {
     // "Balance" sliders: Set all to a low risk value (e.g. 0.15)
     const balancedOverrides: Record<string, number> = {};
@@ -114,7 +126,8 @@ export function RiskRadar({
     setState({
       ...state!,
       riskOverrides: balancedOverrides,
-      isFactorsCollapsed: false // Expand to show the change
+      isFactorsCollapsed: false, // Expand to show the change
+      hasChanges: true
     });
   };
 
@@ -128,7 +141,8 @@ export function RiskRadar({
         ...state!,
         riskOverrides: state?.riskOverrides || {},
         resolvedRisks: [...current, category],
-        expandedCategory: null // Close after fixing
+        expandedCategory: null, // Close after fixing
+        hasChanges: true
       });
     }
   };
@@ -139,7 +153,8 @@ export function RiskRadar({
       ...state!,
       riskOverrides: state?.riskOverrides || {},
       resolvedRisks: current.filter(c => c !== category),
-      expandedCategory: null
+      expandedCategory: null,
+      hasChanges: true
     });
   };
 
@@ -150,7 +165,8 @@ export function RiskRadar({
       riskOverrides: {
         ...(state?.riskOverrides || {}),
         [category]: value
-      }
+      },
+      hasChanges: true
     });
   };
 
@@ -209,7 +225,7 @@ export function RiskRadar({
                   <PolarGrid gridType="polygon" stroke="#e7e5e4" strokeDasharray="3 3" />
                   <PolarAngleAxis
                     dataKey="category"
-                    tick={{ fill: '#78716c', fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+                    tick={{ fill: '#78716c', fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-sans)' }}
                   />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
 
@@ -270,12 +286,23 @@ export function RiskRadar({
             className="px-4 py-3 bg-stone-50/30 flex items-center justify-between cursor-pointer group/header"
           >
             <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-[0.2em]">Risk Factors</h4>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-stone-300 group-hover/header:text-stone-500 transition-colors">
-                {state?.isFactorsCollapsed ? 'View All' : 'Collapse'}
-              </span>
-              {state?.isFactorsCollapsed ? <ChevronDown className="w-3 h-3 text-stone-300" /> : <ChevronUp className="w-3 h-3 text-stone-300" />}
-            </div>
+
+            {state?.hasChanges ? (
+              <button
+                onClick={handleDone}
+                className="flex items-center gap-1.5 px-3 py-1 bg-stone-900 hover:bg-black text-white text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg active:scale-95 transition-all animate-in zoom-in duration-200"
+              >
+                <CheckCircle className="w-3 h-3" />
+                Done
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-stone-300 group-hover/header:text-stone-500 transition-colors">
+                  {state?.isFactorsCollapsed ? 'View All' : 'Collapse'}
+                </span>
+                {state?.isFactorsCollapsed ? <ChevronDown className="w-3 h-3 text-stone-300" /> : <ChevronUp className="w-3 h-3 text-stone-300" />}
+              </div>
+            )}
           </div>
 
           {!state?.isFactorsCollapsed && Object.entries(currentRisks).map(([category, score]) => {

@@ -199,11 +199,13 @@ export function calculateKeywordRiskScore(text: string, keywords: string[]): num
         if (matches) keywordHits += matches.length;
     });
 
-    // Normalize: assume ~1 keyword per 50 words is "medium" risk (0.5)
-    const density = keywordHits / (wordCount / 50);
+    // Normalize: assume ~1 keyword per 150 words is "medium" risk (0.5)
+    // Previous value of 50 was too aggressive, causing normal contracts to show 100% risk (0% health)
+    const factor = Math.max(wordCount, 100) / 150;
+    const density = keywordHits / factor;
 
-    // Cap at 1.0
-    return Math.min(density, 1.0);
+    // Cap at 0.95 to avoid 100% risk unless truly excessive
+    return Math.min(density, 0.95);
 }
 
 /**
