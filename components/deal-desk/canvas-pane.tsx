@@ -5,6 +5,8 @@ import { LayoutGrid, Plus, ChevronUp, Table, BarChart3, Kanban, Layers, Sparkles
 
 import { useDroppable } from "@dnd-kit/core"
 
+import { useIsMobile } from "@/components/ui/use-mobile"
+
 import { RiskRadar } from "./risk-radar"
 import { ClauseTuner } from "./clause-tuner"
 import { ExtractionChecklist } from "./extraction-checklist"
@@ -29,6 +31,8 @@ export function CanvasPane({
   onAutoLayout?: () => void,
   onFocusItem?: (id: string | null) => void
 }) {
+  const isMobile = useIsMobile()
+
   const [activeTab, setActiveTab] = useState("analysis")
   // Pin and Hover State
   const [isPinned, setIsPinned] = useState(false)
@@ -47,11 +51,11 @@ export function CanvasPane({
 
   // Auto-pin logic: When content arrives, pin it automatically (once).
   useEffect(() => {
-    if (hasContent && !hasAutoPinned) {
+    if (!isMobile && hasContent && !hasAutoPinned) {
       setIsPinned(true)
       setHasAutoPinned(true)
     }
-  }, [hasContent, hasAutoPinned])
+  }, [hasContent, hasAutoPinned, isMobile])
 
   // Long press handlers for edit mode
   const handleLongPressStart = () => {
@@ -125,7 +129,9 @@ export function CanvasPane({
   // Logic 2 (Content): Auto-pinned (stays open). Unpinning reverts to Empty behavior.
   const shouldExpand = isPinned || isHovered || isOver || forceExpanded
 
-  const heightClass = shouldExpand ? 'h-[45vh]' : 'h-16'
+  const heightClass = shouldExpand
+    ? (isMobile ? 'h-[38svh]' : 'h-[45vh]')
+    : (isMobile ? 'h-14' : 'h-16')
   const bgStyle = isOver ? { backgroundColor: '#F5F5F4' } : { backgroundColor: '#FDFCF8' }
   const borderColor = isOver ? 'border-emerald-400/50' : 'border-stone-200'
   const glow = isOver ? 'shadow-[0_0_40px_rgba(16,185,129,0.1)]' : 'shadow-2xl'
@@ -221,7 +227,7 @@ export function CanvasPane({
       ref={setNodeRef}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`absolute bottom-6 left-6 right-6 ${heightClass} transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden group rounded-2xl border ${borderColor} ${glow} z-30`}
+      className={`absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 ${heightClass} transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden group rounded-2xl border ${borderColor} ${glow} z-30`}
       style={{
         ...bgStyle,
         // Dotted Grid Visualization (Static Background to show structure)
@@ -235,20 +241,20 @@ export function CanvasPane({
 
 
       {/* View Bar - Skeuomorphic */}
-      <div className="flex items-center justify-between px-4 h-12 bg-gradient-to-b from-white to-stone-50 border-t border-stone-200/80 shadow-[0_-1px_3px_rgba(0,0,0,0.05)] relative z-20">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between px-3 sm:px-4 h-12 bg-gradient-to-b from-white to-stone-50 border-t border-stone-200/80 shadow-[0_-1px_3px_rgba(0,0,0,0.05)] relative z-20 gap-2">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
           <div className="flex items-center gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 text-xs tracking-tight rounded-lg transition-all font-medium ${activeTab === tab.id
+                className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 text-xs tracking-tight rounded-lg transition-all font-medium ${activeTab === tab.id
                   ? 'btn-skeu-dark'
                   : 'text-stone-500 hover:text-stone-700 hover:bg-stone-100/50'
                   }`}
               >
                 {tab.icon && <tab.icon className="w-3.5 h-3.5" />}
-                <span>{tab.label}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -263,12 +269,12 @@ export function CanvasPane({
               placeholder="Filter view..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-7 w-40 pl-8 pr-3 text-xs bg-stone-100/50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-200 focus:bg-white transition-all placeholder:text-stone-400 text-stone-700 shadow-inner"
+              className="h-7 w-28 sm:w-40 pl-8 pr-3 text-xs bg-stone-100/50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-200 focus:bg-white transition-all placeholder:text-stone-400 text-stone-700 shadow-inner"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-none">
 
 
 
@@ -287,8 +293,11 @@ export function CanvasPane({
             ) : (
               <Sparkles className="w-3.5 h-3.5 text-stone-500" />
             )}
-            <span className="min-w-[80px] text-center">
+            <span className="hidden sm:inline min-w-[80px] text-center">
               {isRearranging ? 'Rearranged' : 'Auto Rearrange'}
+            </span>
+            <span className="sm:hidden text-center">
+              {isRearranging ? 'Done' : 'Auto'}
             </span>
           </button>
 
@@ -306,7 +315,7 @@ export function CanvasPane({
       </div>
 
       {/* Canvas Content */}
-      <div className={`h-[calc(100%-48px)] p-6 overflow-y-auto custom-scrollbar custom-scrollbar-teal transition-opacity duration-300 delay-100 ${shouldExpand ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+      <div className={`h-[calc(100%-48px)] p-4 sm:p-6 overflow-y-auto custom-scrollbar custom-scrollbar-teal transition-opacity duration-300 delay-100 ${shouldExpand ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
         {!hasContent ? (
           <div className="h-full flex items-center justify-center">
             <div className={`w-full max-w-lg h-52 border-2 border-dashed ${isOver ? 'border-[#20808D] bg-[#20808D]/5' : 'border-stone-300 bg-white/60'} rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer backdrop-blur-sm`}>
@@ -362,7 +371,7 @@ export function CanvasPane({
 
 
 
-            <div className="grid grid-cols-12 gap-6 pb-20 relative">
+            <div className="grid grid-cols-12 gap-4 sm:gap-6 pb-20 relative">
               {displayItems.map((item, index) => {
                 // Resize state
                 const isResizingThis = resizingItem?.id === item.id

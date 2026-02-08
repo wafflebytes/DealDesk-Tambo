@@ -447,7 +447,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
 
   return (
-    <div className="relative flex flex-col h-full bg-slate-50 overflow-hidden border-l border-slate-200">
+    <div className="relative flex flex-col h-full bg-slate-50 overflow-hidden md:border-l border-slate-200">
       {/* Thread Drawer */}
       <ThreadDrawer
         isOpen={isDrawerOpen}
@@ -456,7 +456,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
       {/* Header - Fixed in Flow */}
       {/* Header - Fixed in Flow - Premium Polish */}
-      <div className="flex-none px-5 py-3 bg-[#fcfaf8]/95 backdrop-blur-xl border-b border-stone-200/60 z-30 supports-[backdrop-filter]:bg-[#fcfaf8]/80">
+      <div className="flex-none px-3 sm:px-5 py-3 bg-[#fcfaf8]/95 backdrop-blur-xl border-b border-stone-200/60 z-30 supports-[backdrop-filter]:bg-[#fcfaf8]/80">
         <div className="flex items-center justify-between">
           <div className={`flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'hidden' : 'flex'}`}>
             <button
@@ -493,7 +493,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
             <p className="text-[9px] font-bold text-stone-400 uppercase tracking-[0.2em]">Assistant</p>
           </div>
 
-          <div className={`relative flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'flex-1' : 'w-32'}`}>
+          <div className={`relative flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'flex-1' : 'w-24 sm:w-32'}`}>
             <div className={`relative group w-full`}>
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
               <input
@@ -519,7 +519,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
       </div>
 
       {/* Message Stream */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 scroll-smooth relative custom-scrollbar-teal">
+      <div className="flex-1 overflow-y-auto min-h-0 px-3 sm:px-5 py-3 sm:py-4 scroll-smooth relative custom-scrollbar-teal">
         {/* Top Fade Mask - Removed or simplified */}
 
         {hasMessages ? (
@@ -545,7 +545,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                 if (message.role === "user") {
                   renderedMessages.push(
                     <div key={message.id || i} className="flex justify-end animate-in fade-in slide-in-from-bottom-2">
-                      <div className="max-w-[80%] px-5 py-3 btn-skeu-dark rounded-2xl rounded-tr-sm text-sm leading-relaxed font-medium">
+                      <div className="max-w-[90%] sm:max-w-[80%] px-4 sm:px-5 py-3 btn-skeu-dark rounded-2xl rounded-tr-sm text-sm leading-relaxed font-medium">
                         {getMessageContent(message.content)}
                       </div>
                     </div>
@@ -749,7 +749,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
             <div ref={messagesEndRef} />
           </div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8">
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 sm:p-8">
             <div className="w-20 h-20 mb-6 rounded-2xl inset-skeu flex items-center justify-center opacity-50">
               <Scale className="w-8 h-8 text-stone-400" />
             </div>
