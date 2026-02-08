@@ -46,7 +46,7 @@ export default function ComponentGallery() {
                     <section className="space-y-4">
                         <div className="flex items-center gap-2 px-1 text-blue-600">
                             <Sliders className="w-5 h-5" />
-                            <h2 className="font-bold uppercase tracking-wider text-xs">Clause Tuning</h2>
+                            <h2 className="font-bold uppercase tracking-wider text-xs">Clause Refinement</h2>
                         </div>
                         <div className="card-skeu p-6 rounded-3xl bg-white border border-stone-200">
                             <ClauseTuner />

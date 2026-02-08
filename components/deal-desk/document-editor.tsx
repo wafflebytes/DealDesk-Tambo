@@ -245,12 +245,12 @@ export function DocumentEditor({ content, fileName }: DocumentEditorProps) {
     <div className="flex flex-col h-full bg-[#FDFCF8] relative overflow-hidden">
       <EditorContext.Provider value={{ editor }}>
         {/* Main Content Area */}
-        <div className="flex-1 overflow-hidden pt-4 pb-8 flex justify-center">
-          <div className="relative flex flex-col max-w-4xl w-full bg-white rounded-xl shadow-sm ring-1 ring-stone-200/50 h-full overflow-hidden">
+        <div className="flex-1 overflow-hidden pt-3 pb-6 flex justify-center px-3 sm:pt-4 sm:pb-8 sm:px-6">
+          <div className="relative flex flex-col max-w-4xl w-full bg-white rounded-lg shadow-sm ring-1 ring-stone-200/50 h-full overflow-hidden sm:rounded-xl">
 
             {/* In-Editor Rich Text Toolbar (Tiptap Style) */}
             {!diffMode && (
-              <Toolbar className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-100 px-6 h-12 shrink-0 w-full">
+              <Toolbar className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-100 px-3 h-12 shrink-0 w-full sm:px-6">
                 <ToolbarGroup>
                   <UndoRedoButton action="undo" />
                   <UndoRedoButton action="redo" />

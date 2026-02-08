@@ -41,7 +41,7 @@ const tamboComponents = [
     },
     {
         name: "ClauseTuner",
-        description: `TRIGGER: "tune clause", "adjust liability", "change cap", "modify terms", "negotiate", "increase/decrease"
+        description: `TRIGGER: "refine clause", "rewrite clause", "tune clause", "adjust liability", "change cap", "modify terms", "negotiate", "increase/decrease"
         PURPOSE: Interactive slider/toggle to adjust clause parameters (Liability Cap multiplier, mutual liability).
         OUTPUT: Render with clauseType, currentValue, multiplier. NO text explanation needed.`,
         component: ClauseTuner,
@@ -100,7 +100,7 @@ ABSOLUTE RULES:
 
 PROMPT → COMPONENT MAPPING:
 • "analyze risk" / "risks" / "deal health" → RiskRadar
-• "tune" / "adjust" / "cap" / "negotiate" → ClauseTuner  
+• "refine" / "rewrite" / "tune" / "adjust" / "cap" / "negotiate" → ClauseTuner  
 • "obligations" / "tasks" / "checklist" / "duties" → ExtractionChecklist
 • "definitions" / "glossary" / "what does X mean" → KnowledgeBank
 
