@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react"
 import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2, Github, ChevronDown } from "lucide-react"
 import { useTamboThread } from "@tambo-ai/react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // GenUI Components
 import { RiskRadar } from "./risk-radar"
@@ -450,15 +451,23 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                 <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
               </div>
             </button>
-            <a
-              href="https://github.com/wafflebytes/DealDesk-Tambo"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Build using Tambo, check out github"
-              className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
-            >
-              <Github className="w-4 h-4" />
-            </a>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href="https://github.com/wafflebytes/DealDesk-Tambo"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+                  >
+                    <Github className="w-4 h-4" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Build using Tambo, check out github</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
           <div className={`flex flex-col items-center flex-1 ${isSearchFocused ? 'hidden' : 'flex'}`}>
@@ -466,8 +475,8 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
             <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Assistant</p>
           </div>
 
-          <div className={`relative flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'flex-1' : 'w-auto'}`}>
-            <div className="relative group">
+          <div className={`relative flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'flex-1' : 'w-32'}`}>
+            <div className={`relative group w-full`}>
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
@@ -476,7 +485,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => !searchQuery && setIsSearchFocused(false)}
                 placeholder="Search..."
-                className={`h-8 pl-8 pr-7 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all ${isSearchFocused ? 'w-full' : 'w-32'}`}
+                className={`h-8 pl-8 pr-7 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all w-full`}
               />
             </div>
             {isSearchFocused && (
