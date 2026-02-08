@@ -49,7 +49,7 @@ export function CanvasPane({
 
   const hasContent = items.length > 0
 
-  // Auto-pin logic: When content arrives, pin it automatically (once).
+  // Desktop-only auto-pin: on small screens it can easily cover too much of the editor/chat.
   useEffect(() => {
     if (!isMobile && hasContent && !hasAutoPinned) {
       setIsPinned(true)
@@ -165,6 +165,7 @@ export function CanvasPane({
   const borderColor = isOver ? 'border-emerald-400/50' : 'border-stone-200'
   const glow = isOver ? 'shadow-[0_0_40px_rgba(16,185,129,0.1)]' : 'shadow-2xl'
 
+  // Keep in sync with the canvas container padding (`left-4/right-4` + `sm:left-6/right-6`).
   const gridSidePaddingPx = isMobile ? 16 : 24
   const gridRowHeightPx = 24
 

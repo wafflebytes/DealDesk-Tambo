@@ -19,29 +19,29 @@ import { DealRiskData, ClauseTunerData, ChecklistData, DefinitionBankData, Scopi
 const starterPrompts = [
   {
     icon: AlertTriangle,
-    label: "Assess risks",
-    message: "Analyze this contract for key legal/commercial risks and show a Risk Radar with the top drivers.",
+    displayLabel: "Assess risks",
+    prompt: "Analyze this contract for key legal/commercial risks and show a Risk Radar with the top drivers.",
     color: "text-amber-600",
     bg: "bg-amber-50"
   },
   {
     icon: Sliders,
-    label: "Edit a clause",
-    message: "Help me rewrite the limitation of liability clause to be safer for us. Show options and explain tradeoffs.",
+    displayLabel: "Edit a clause",
+    prompt: "Help me rewrite the limitation of liability clause to be safer for us. Show options and explain tradeoffs.",
     color: "text-blue-600",
     bg: "bg-blue-50"
   },
   {
     icon: BookOpen,
-    label: "Explain definitions",
-    message: "Pull out the key defined terms and explain what each one means in plain English.",
+    displayLabel: "Explain definitions",
+    prompt: "Pull out the key defined terms and explain what each one means in plain English.",
     color: "text-purple-600",
     bg: "bg-purple-50"
   },
   {
     icon: CheckSquare,
-    label: "Extract obligations",
-    message: "Extract the concrete obligations and deadlines for each party and present them as a checklist.",
+    displayLabel: "Extract obligations",
+    prompt: "Extract the concrete obligations and deadlines for each party and present them as a checklist.",
     color: "text-emerald-600",
     bg: "bg-emerald-50"
   },
@@ -788,13 +788,13 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
               {starterPrompts.map((prompt, index) => (
                 <button
                   key={index}
-                  onClick={() => sendThreadMessage(prompt.message, { streamResponse: true })}
+                  onClick={() => sendThreadMessage(prompt.prompt, { streamResponse: true })}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl card-skeu hover:translate-y-[-2px] transition-all group text-left"
                 >
                   <div className={`w-8 h-8 rounded-lg ${prompt.bg} inset-skeu flex items-center justify-center group-hover:scale-110 transition-transform`}>
                     <prompt.icon className={`w-4 h-4 ${prompt.color} drop-shadow-sm`} />
                   </div>
-                  <span className="text-sm text-stone-700 font-medium">{prompt.label}</span>
+                  <span className="text-sm text-stone-700 font-medium">{prompt.displayLabel}</span>
                 </button>
               ))}
             </div>

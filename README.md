@@ -112,7 +112,7 @@ Next.js route handler
 ## Tambo features we use (Best Use Case of Tambo)
 
 1. *Generative UI components* via `TamboProvider` component registration
-   * `RiskRadar`, `ClauseTuner`, `ExtractionChecklist`, `DefinitionBank`, `ScopingCard`
+   * `RiskRadar`, `ClauseTuner`, `ExtractionChecklist`, `KnowledgeBank` (Definition Bank UI), `ScopingCard`
    * All components have explicit *Zod* schemas for runtime validation.
 
 2. *Tools / function calling* to orchestrate multi-step behavior
@@ -145,6 +145,12 @@ The UI intentionally leans into a skeuomorphic, tactile design language:
 * premium “physical” controls (buttons, shadows, cards)
 * fast, deterministic UI state transitions
 * mobile-first layout behavior (vertical split on small screens)
+
+Mobile responsiveness highlights:
+
+* Landing CTAs stack nicely on small screens.
+* `/desk` switches to a vertical split (Editor/Canvas above, Chat below).
+* The Canvas shrinks its chrome and spacing on mobile so it stays usable without covering the whole screen.
 
 ## Learning & Growth
 

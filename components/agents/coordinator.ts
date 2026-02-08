@@ -119,7 +119,11 @@ function classifyIntent(message: string): {
     }
 
     // Clause negotiation patterns -> Route to scoping first to collect params
-    if (lowerMessage.includes("edit") || lowerMessage.includes("rewrite") || lowerMessage.includes("revise") || lowerMessage.includes("redline") || lowerMessage.includes("tune") || lowerMessage.includes("adjust") || lowerMessage.includes("negotiate") || lowerMessage.includes("cap") || lowerMessage.includes("modify") || lowerMessage.includes("liability")) {
+    const clauseEditVerbs = lowerMessage.includes("edit") || lowerMessage.includes("rewrite") || lowerMessage.includes("revise") || lowerMessage.includes("redline");
+    const clauseKeywords = lowerMessage.includes("clause") || lowerMessage.includes("liability") || lowerMessage.includes("cap") || lowerMessage.includes("indemn") || lowerMessage.includes("termination") || lowerMessage.includes("confidential") || lowerMessage.includes("governing law") || lowerMessage.includes("payment");
+    const clauseTuningSignals = lowerMessage.includes("tune") || lowerMessage.includes("adjust") || lowerMessage.includes("negotiate") || lowerMessage.includes("cap") || lowerMessage.includes("modify") || lowerMessage.includes("liability");
+
+    if (clauseTuningSignals || (clauseEditVerbs && clauseKeywords)) {
         return {
             routeToAgent: "scopeRequest",
             isTextResponse: false,
