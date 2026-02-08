@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, DragStartEvent, DragEndEvent } from "@dnd-kit/core"
-import type { DropAnimation } from "@dnd-kit/core"
 import { DocumentEditor } from "@/components/deal-desk/document-editor"
 import { TamboChat } from "@/components/deal-desk/tambo-chat"
 import { CanvasPane } from "@/components/deal-desk/canvas-pane"
@@ -25,7 +24,6 @@ type AppState = 'empty' | 'processing' | 'active'
 export default function DealDeskPage() {
   const [appState, setAppState] = useState<AppState>('empty')
   const [isDrafting, setIsDrafting] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
   const [isContractGenerating, setIsContractGenerating] = useState(false)
   const [generatingContractType, setGeneratingContractType] = useState<string | null>(null)
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false)
@@ -346,7 +344,6 @@ export default function DealDeskPage() {
         <SmartDraftModal
           onClose={() => setIsDrafting(false)}
           onDraft={handleGenerate}
-          isGenerating={isGenerating}
         />
       )}
     </DndContext>

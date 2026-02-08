@@ -151,9 +151,12 @@ export default function LandingPage() {
                     Built for focus. No dashboards.
                   </div>
 
-                  <div className="btn-skeu rounded-full px-3 py-1.5 text-xs font-semibold text-stone-800">
+                  <Link
+                    href="/desk"
+                    className="btn-skeu rounded-full px-3 py-1.5 text-xs font-semibold text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
+                  >
                     Launch
-                  </div>
+                  </Link>
                 </div>
               </div>
             </div>
