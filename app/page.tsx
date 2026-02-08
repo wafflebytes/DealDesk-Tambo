@@ -1,354 +1,159 @@
-"use client"
+import Link from "next/link"
+import { ArrowRight, LayoutGrid, Scale } from "lucide-react"
 
-import { useState, useRef } from "react"
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, DragStartEvent, DragEndEvent } from "@dnd-kit/core"
-import type { DropAnimation } from "@dnd-kit/core"
-import { DocumentEditor } from "@/components/deal-desk/document-editor"
-import { TamboChat } from "@/components/deal-desk/tambo-chat"
-import { CanvasPane } from "@/components/deal-desk/canvas-pane"
-import { UploadZone } from "@/components/deal-desk/upload-zone"
-import { ProcessingView } from "@/components/deal-desk/processing-view"
-import { RiskRadar } from "@/components/deal-desk/risk-radar"
-import { ClauseTuner } from "@/components/deal-desk/clause-tuner"
-import { ExtractionChecklist } from "@/components/deal-desk/extraction-checklist"
-import { DefinitionBank } from "@/components/deal-desk/definition-bank"
-import { DefinitionExplainer } from "@/components/deal-desk/definition-explainer"
-import { ScopingCard } from "@/components/deal-desk/scoping-card"
-import { SmartDraftModal, type DraftData } from "@/components/deal-desk/smart-draft-modal"
-import { ContractGeneratingView } from "@/components/deal-desk/contract-generating-view"
-import { Scale, ChevronDown, Share2, Bell, Settings, X } from "lucide-react"
-
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
-
-type AppState = 'empty' | 'processing' | 'active'
-
-export default function DealDeskPage() {
-  const [appState, setAppState] = useState<AppState>('empty')
-  const [isDrafting, setIsDrafting] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [isContractGenerating, setIsContractGenerating] = useState(false)
-  const [generatingContractType, setGeneratingContractType] = useState<string | null>(null)
-  const [isCanvasExpanded, setIsCanvasExpanded] = useState(false)
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [draggingComponent, setDraggingComponent] = useState<React.ReactNode>(null)
-
-  const [canvasItems, setCanvasItems] = useState<{ id: string; colSpan: number }[]>([])
-  // Store the actual rendered components for the canvas to use
-  const [storedComponents, setStoredComponents] = useState<Record<string, React.ReactNode>>({})
-  const [docContent, setDocContent] = useState<string | null>(null)
-  const [docFileName, setDocFileName] = useState<string | null>(null)
-
-  const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
-
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  )
-
-  function handleUpload(content: string, fileName: string) {
-    setDocContent(content)
-    setDocFileName(fileName)
-    setAppState('processing')
-  }
-
-  function handleProcessingComplete() {
-    setAppState('active')
-  }
-
-  function handleDraft() {
-    setIsDrafting(true)
-  }
-
-  // Direct API call for contract generation (bypasses Maven chat)
-  async function handleGenerate(data: DraftData) {
-    console.log("Generating contract with:", data)
-
-    // Close modal immediately
-    setIsDrafting(false)
-
-    // If form is empty, use boilerplate immediately
-    if (data.isEmpty) {
-      setDocContent(data.boilerplate)
-      setDocFileName("Draft Contract.md")
-      setAppState('active')
-      return
-    }
-
-    // Show generating animation
-    setIsContractGenerating(true)
-    setGeneratingContractType(data.contractType || 'Contract')
-
-    try {
-      // Call direct API (no Maven/Tambo)
-      const response = await fetch('/api/draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-
-      if (result.contract) {
-        setDocContent(result.contract)
-        setDocFileName(`${data.contractType || 'Draft'} Contract.md`)
-      } else {
-        // Fallback to boilerplate
-        setDocContent(data.boilerplate)
-        setDocFileName("Draft Contract.md")
-      }
-
-      setAppState('active')
-    } catch (error) {
-      console.error("Failed to generate contract:", error)
-      // Fallback to boilerplate on error
-      setDocContent(data.boilerplate)
-      setDocFileName("Draft Contract.md")
-      setAppState('active')
-    } finally {
-      setIsContractGenerating(false)
-      setGeneratingContractType(null)
-    }
-  }
-
-  function handleDragStart(event: DragStartEvent) {
-    if (appState !== 'active') return
-    setActiveId(String(event.active.id))
-    // Capture the rendered component from drag data for the overlay
-    const component = (event.active.data.current as any)?.renderedComponent
-    setDraggingComponent(component || null)
-    setIsCanvasExpanded(true) // Auto-expand on drag
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { over, active } = event
-    setActiveId(null)
-    setDraggingComponent(null)
-    setIsCanvasExpanded(false)
-
-    // CanvasPane is droppable with id 'canvas-drop-zone'
-    if (over && over.id === 'canvas-drop-zone') {
-      // Get the rendered component from drag data
-      const renderedComponent = (active.data.current as any)?.renderedComponent
-      // Use the original drag ID directly
-      const itemId = String(active.id)
-      console.log('[Page] handleDragEnd - itemId:', itemId, 'hasComponent:', !!renderedComponent)
-
-      // Check if item already exists to prevent duplicates
-      const exists = canvasItems.some(item => item.id === itemId)
-      if (!exists) {
-        // Store the rendered component for canvas to use
-        if (renderedComponent) {
-          setStoredComponents(prev => ({ ...prev, [itemId]: renderedComponent }))
-        }
-        // Default to col-span-4 (1/3 width)
-        setCanvasItems(prev => [...prev, { id: itemId, colSpan: 4 }])
-      }
-    }
-  }
-
-  // Callback to update item dimensions from CanvasPane
-  const updateItemSpan = (id: string, newSpan: number) => {
-    setCanvasItems(prev => prev.map(item =>
-      item.id === id ? { ...item, colSpan: newSpan } : item
-    ))
-  }
-
-  // Remove item from canvas
-  const removeItem = (id: string) => {
-    setCanvasItems(prev => prev.filter(item => item.id !== id))
-    setStoredComponents(prev => {
-      const { [id]: _, ...rest } = prev
-      return rest
-    })
-  }
-
-  // Bulk update layout (Auto Rearrange)
-  const handleAutoLayout = () => {
-    setCanvasItems(prev => prev.map(item => ({ ...item, colSpan: 6 })))
-  }
-
-  // Render Item Logic (Duplicated from CanvasPane for Overlay)
-  const renderItem = (id: string) => {
-    // First, check if we have a stored component
-    if (storedComponents[id]) {
-      return <div className="w-full">{storedComponents[id]}</div>
-    }
-    // Fallback: try to match by ID pattern
-    const lowerId = id.toLowerCase()
-    if (lowerId.includes('risk-radar') || lowerId.includes('riskradar') || lowerId.includes('risk')) return <RiskRadar risks={{ Liability: 0.2, IP: 0.1, Term: 0.3, Payment: 0.1 }} followUps={[]} />
-    if (lowerId.includes('clause-tuner') || lowerId.includes('clausetuner') || lowerId.includes('clause')) return <ClauseTuner />
-    if (lowerId.includes('extraction-checklist') || lowerId.includes('checklist') || lowerId.includes('extraction') || lowerId.includes('obligation')) return <ExtractionChecklist />
-    if (lowerId.includes('knowledge-bank') || lowerId.includes('knowledgebank') || lowerId.includes('definition') || lowerId.includes('knowledge')) return <DefinitionBank />
-    if (lowerId.includes('explainer')) return <DefinitionExplainer term="Term" />
-    if (lowerId.includes('scoping') || lowerId.includes('scoping-card')) return <ScopingCard />
-    return <div className="p-4 bg-white rounded-xl border border-dashed border-stone-300">Unknown Component: {id}</div>
-  }
-
+export default function LandingPage() {
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
-        {/* Global Header - Immersive Skeuomorphic */}
-        <header className="h-14 flex-none border-b border-[#20808D]/10 bg-gradient-to-r from-white via-[#f4fafa]/50 to-white flex items-center justify-between px-5 shadow-sm z-40 relative">
-          <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] -z-10" />
-          {/* Left Side */}
-          <div className="flex items-center gap-4">
-            {/* Logo - Minimal Design */}
-            <div className="flex items-center gap-2.5">
-              <Scale className="w-5 h-5 text-[#20808D]" strokeWidth={2.0} />
-              <h1
-                className="font-serif text-[22px] tracking-[-0.03em] text-[#0d3d43] pt-0.5 leading-none"
-                style={{ fontWeight: 550 }}
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3]">
+      {/* Atmosphere: soft bloom + paper fiber */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 12% 18%, rgba(32, 128, 141, 0.18), transparent 42%), radial-gradient(circle at 78% 28%, rgba(13, 61, 67, 0.08), transparent 45%), radial-gradient(circle at 58% 92%, rgba(245, 158, 11, 0.10), transparent 40%)",
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.06] mix-blend-multiply"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, rgba(13, 61, 67, 0.55) 0px, rgba(13, 61, 67, 0.55) 1px, transparent 1px, transparent 7px), repeating-linear-gradient(90deg, rgba(13, 61, 67, 0.35) 0px, rgba(13, 61, 67, 0.35) 1px, transparent 1px, transparent 11px)",
+          }}
+        />
+      </div>
+
+      <div className="relative mx-auto w-full max-w-6xl px-6 py-14 md:py-20">
+        <div className="grid items-center gap-10 md:grid-cols-[1.1fr_0.9fr]">
+          <section className="animate-in fade-in slide-in-from-left-4 duration-700">
+            <div className="inline-flex items-center gap-3 rounded-2xl px-4 py-2 card-skeu">
+              <div className="w-9 h-9 rounded-xl inset-skeu bg-white flex items-center justify-center border border-stone-200/60">
+                <Scale className="w-5 h-5 text-[#20808D]" strokeWidth={2.2} />
+              </div>
+              <div className="leading-tight">
+                <div
+                  className="font-serif text-[18px] tracking-[-0.03em] text-[#0d3d43]"
+                  style={{ fontWeight: 560 }}
+                >
+                  The Deal Desk
+                </div>
+                <div className="text-xs font-medium text-stone-500">Tactile contract workspace</div>
+              </div>
+            </div>
+
+            <h1
+              className="mt-7 font-serif text-[40px] md:text-[54px] leading-[1.02] tracking-[-0.05em] text-stone-900"
+              style={{ fontWeight: 650 }}
+            >
+              A desk, not a dashboard.
+            </h1>
+
+            <p className="mt-4 max-w-[42ch] text-[15px] md:text-[16px] leading-relaxed text-stone-600 font-medium">
+              Upload a contract, draft in place, and pull in intelligent modules like Risk Radar and Clause Tuner
+              when you need them.
+            </p>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link
+                href="/deal-desk"
+                className="btn-skeu-dark rounded-xl px-5 py-3 text-sm font-bold tracking-tight shadow-lg hover:shadow-xl active:scale-[0.98] transition-all inline-flex items-center gap-2"
               >
-                The Deal Desk
-              </h1>
+                Open the workspace
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/components"
+                className="btn-skeu rounded-xl px-5 py-3 text-sm font-semibold text-stone-700 hover:text-stone-900 active:scale-[0.98] transition-all inline-flex items-center gap-2"
+              >
+                Component gallery
+                <LayoutGrid className="w-4 h-4" />
+              </Link>
             </div>
 
-            {/* Divider */}
-            <div className="h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100" />
-
-            {/* Context / Project Switcher - Skeuomorphic Dropdown */}
-            <button className="flex items-center gap-2 px-3 pl-3.5 py-1.5 rounded-lg inset-skeu bg-stone-50/50 hover:bg-white transition-all group">
-              <span className="text-sm font-medium text-stone-700 group-hover:text-stone-900">
-                {appState === 'active' ? (docFileName || "Acme Corp MSA") : "New Project"}
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-500">
+              <span className="inline-flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#20808D] shadow-[0_0_0_3px_rgba(32,128,141,0.12)]" />
+                Skeuomorphic UI system
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-600" />
-            </button>
-          </div>
-
-          {/* Right Side */}
-          <div className="flex items-center gap-2">
-            {/* Icon Buttons */}
-            <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
-              <Bell className="w-3.5 h-3.5" />
-            </button>
-            <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
-              <Settings className="w-3.5 h-3.5" />
-            </button>
-
-            {/* Divider */}
-            <div className="h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100 mx-1" />
-
-            {/* Share Button - Compact Icon */}
-            <button className="w-8 h-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95 group">
-              <Share2 className="w-3.5 h-3.5 group-hover:text-stone-900 transition-colors" />
-            </button>
-
-            {/* Profile Avatar - Smaller to match */}
-            <div className="relative ml-1">
-              <button className="w-8 h-8 rounded-full bg-gradient-to-b from-stone-700 to-stone-900 flex items-center justify-center text-white text-[10px] font-medium shadow-md ring-2 ring-white cursor-pointer hover:shadow-lg transition-shadow active:scale-95">
-                JD
-              </button>
-              {/* Status Dot */}
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#20808D] rounded-full border-2 border-white shadow-sm" />
+              <span className="inline-flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500/80 shadow-[0_0_0_3px_rgba(245,158,11,0.14)]" />
+                Fast, local-first demo
+              </span>
             </div>
-          </div>
-        </header>
+          </section>
 
-        {/* Resizable Layout */}
-        <div className="flex-1 overflow-hidden relative">
-          <ResizablePanelGroup direction="horizontal">
-            {/* Left Panel: Editor & Upload & Canvas */}
-            <ResizablePanel defaultSize={50} minSize={35}>
-              <div className="h-full overflow-hidden pb-12 relative flex flex-col">
-                <div className="flex-1 overflow-hidden">
-                  {isContractGenerating && <ContractGeneratingView contractType={generatingContractType || undefined} />}
-                  {!isContractGenerating && appState === 'empty' && <UploadZone onUpload={handleUpload} onDraft={handleDraft} />}
-                  {!isContractGenerating && appState === 'processing' && <ProcessingView onComplete={handleProcessingComplete} />}
-                  {!isContractGenerating && appState === 'active' && (
-                    <DocumentEditor
-                      content={docContent || undefined}
-                      fileName={docFileName || undefined}
-                    />
-                  )}
+          <aside className="relative animate-in fade-in slide-in-from-right-6 duration-700">
+            {/* Paper stack */}
+            <div className="absolute -right-6 -top-8 h-[520px] w-[520px] rounded-[56px] opacity-50 blur-2xl bg-[#20808D]/10" />
+
+            <div className="relative mx-auto w-full max-w-[420px]">
+              <div className="absolute inset-0 translate-x-2 translate-y-2 rotate-[1.2deg] rounded-[32px] bg-white/70 border border-stone-200 shadow-[0_12px_40px_rgba(0,0,0,0.06)]" />
+              <div className="absolute inset-0 -translate-x-2 translate-y-4 -rotate-[1.1deg] rounded-[32px] bg-[#fffdf7]/80 border border-stone-200/70 shadow-[0_10px_36px_rgba(0,0,0,0.05)]" />
+
+              <div className="relative rounded-[32px] card-skeu p-6 md:p-7 overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none">
+                  <div
+                    className="absolute inset-0 opacity-[0.55]"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle at 30% 10%, rgba(32, 128, 141, 0.18), transparent 45%), radial-gradient(circle at 70% 80%, rgba(13, 61, 67, 0.07), transparent 44%)",
+                    }}
+                  />
                 </div>
 
+                <div className="relative">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl knob-skeu">
+                        <div className="w-6 h-6 rounded-xl bg-[#20808D] shadow-[0_10px_18px_rgba(32,128,141,0.22)]" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-stone-900 tracking-tight">Workspace</div>
+                        <div className="text-xs font-medium text-stone-500">Drop in modules as you work</div>
+                      </div>
+                    </div>
 
-                <CanvasPane
-                  forceExpanded={isCanvasExpanded}
-                  items={canvasItems}
-                  storedComponents={storedComponents}
-                  onUpdateItem={updateItemSpan}
-                  onRemoveItem={removeItem}
-                  onAutoLayout={handleAutoLayout}
-                  onFocusItem={setFocusedItemId}
-                />
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl btn-skeu flex items-center justify-center text-stone-500">
+                        <span className="block w-3 h-3 rounded-sm bg-stone-300 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset]" />
+                      </div>
+                      <div className="w-8 h-8 rounded-xl btn-skeu flex items-center justify-center text-stone-500">
+                        <span className="block w-4 h-1 rounded-full bg-stone-300 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 rounded-2xl inset-skeu p-3 bg-stone-50/60 border border-stone-200/60">
+                    <div className="flex items-center justify-between">
+                      <div className="h-2.5 w-24 rounded-full bg-stone-300/70" />
+                      <div className="h-2.5 w-16 rounded-full bg-[#20808D]/35" />
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className="h-16 rounded-xl bg-white/70 border border-stone-200/60 shadow-sm" />
+                      <div className="h-16 rounded-xl bg-white/70 border border-stone-200/60 shadow-sm" />
+                      <div className="h-16 rounded-xl bg-white/70 border border-stone-200/60 shadow-sm" />
+                    </div>
+                    <div className="mt-3 h-24 rounded-xl bg-white/70 border border-stone-200/60 shadow-sm" />
+                  </div>
+
+                  <div className="mt-5 flex items-center justify-between">
+                    <div className="text-xs font-semibold text-stone-600">
+                      “Feels like a real desk.”
+                    </div>
+                    <div className="w-12 h-12 rounded-full btn-skeu-dark flex items-center justify-center shadow-lg">
+                      <span className="font-serif text-[18px] leading-none">D</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </ResizablePanel>
-
-            <ResizableHandle withHandle />
-
-            {/* Right Panel: Chat */}
-            <ResizablePanel defaultSize={28} minSize={20} maxSize={65}>
-              <div className="h-full overflow-hidden border-l border-stone-200 shadow-[-1px_0_4px_rgba(0,0,0,0.02)] z-10 bg-stone-50/50">
-                <TamboChat appState={appState} />
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+            </div>
+          </aside>
         </div>
 
-        {/* Drag Overlay for Visual Feedback - iOS Style */}
-        <DragOverlay
-          zIndex={10000}
-          dropAnimation={null}
-          className="z-[10000]"
-        >
-          {activeId && draggingComponent ? (
-            <div
-              className="opacity-95 scale-[0.5] origin-center pointer-events-none z-[10000] relative cursor-grabbing transition-transform duration-150"
-              style={{
-                filter: 'drop-shadow(0 25px 50px rgba(0,0,0,0.35))',
-                transform: 'rotate(2deg)',
-              }}
-            >
-              {draggingComponent}
-            </div>
-          ) : null}
-        </DragOverlay>
-
-        {/* Global Focus Overlay - Rendered at Root to avoid z-index clipping */}
-        {focusedItemId && (
-          <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200">
-            {/* Dimmed Background */}
-            <div
-              className="absolute inset-0 bg-stone-950/75 backdrop-blur-sm transition-all"
-              onClick={() => setFocusedItemId(null)}
-            />
-
-            {/* Focused Content Wrapper */}
-            <div
-              className="relative w-full max-w-4xl max-h-[85vh] bg-transparent transform transition-all duration-300 animate-in zoom-in-95 flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setFocusedItemId(null)}
-                className="absolute -top-12 right-0 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md text-sm font-medium transition-colors flex items-center gap-2"
-              >
-                Close View <X className="w-4 h-4" /> {/* X is probably not imported in page.tsx, need to verify */}
-              </button>
-              {/* Render the full-size component */}
-              <div className="w-full h-full shadow-2xl rounded-2xl overflow-y-auto custom-scrollbar ring-1 ring-white/20 bg-white">
-                {renderItem(focusedItemId)}
-              </div>
-            </div>
-          </div>
-        )}
+        <footer className="mt-16 text-center text-xs text-stone-400">
+          <span className="font-medium">Tip:</span> bookmark the workspace at
+          <span className="mx-1 font-mono text-stone-500">/deal-desk</span>
+        </footer>
       </div>
-      {/* Smart Draft Modal */}
-      {isDrafting && (
-        <SmartDraftModal
-          onClose={() => setIsDrafting(false)}
-          onDraft={handleGenerate}
-          isGenerating={isGenerating}
-        />
-      )}
-    </DndContext>
+    </main>
   )
 }
