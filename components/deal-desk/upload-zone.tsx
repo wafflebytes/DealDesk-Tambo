@@ -30,7 +30,7 @@ export function UploadZone({ onUpload, onDraft }: UploadZoneProps) {
         <div className="h-full flex items-center justify-center p-4 sm:p-8">
             <div
                 onClick={handleClick}
-                className="w-full max-w-2xl min-h-[520px] sm:min-h-0 sm:aspect-[4/3] rounded-[2rem] border-4 border-dashed border-stone-300 bg-stone-50/30 hover:bg-[#20808D]/5 has-[button:hover]:bg-stone-50/30 hover:border-[#20808D]/40 has-[button:hover]:border-stone-300 transition-all duration-500 cursor-pointer group flex flex-col items-center justify-center relative overflow-hidden shadow-sm hover:shadow-xl has-[button:hover]:shadow-sm hover:shadow-[#20808D]/10 has-[button:hover]:shadow-none"
+                className="w-full max-w-2xl min-h-[60svh] sm:min-h-0 sm:aspect-[4/3] rounded-[2rem] border-4 border-dashed border-stone-300 bg-stone-50/30 hover:bg-[#20808D]/5 has-[button:hover]:bg-stone-50/30 hover:border-[#20808D]/40 has-[button:hover]:border-stone-300 transition-all duration-500 cursor-pointer group flex flex-col items-center justify-center relative overflow-hidden shadow-sm hover:shadow-xl has-[button:hover]:shadow-sm hover:shadow-[#20808D]/10 has-[button:hover]:shadow-none"
             >
                 <input
                     type="file"

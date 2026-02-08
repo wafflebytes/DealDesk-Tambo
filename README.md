@@ -44,6 +44,31 @@ The Deal Desk turns model outputs into *interactive building blocks* (GenUI card
 
 ## How it works (high level)
 
+## Diagrams
+
+Architecture at a glance:
+
+```
+                    (client)
+┌──────────────────────────────────────────────────────────────────┐
+│ Next.js App Router                                               │
+│                                                                  │
+│  DocumentEditor (Tiptap)        TamboChat (useTamboThread)       │
+│     |                                      |                     │
+│     | useTamboContextHelpers               | tools + components   │
+│     v                                      v                     │
+│  Context injected into thread    GenUI cards rendered in chat     │
+│                                                                  │
+│              Drag & drop (dnd-kit) into CanvasPane                │
+└──────────────────────────────────────────────────────────────────┘
+
+                    (server)
+┌──────────────────────────────────────────────────────────────────┐
+│ /api/draft + /api/elicitation                                    │
+│   -> @tambo-ai/typescript-sdk (threads.create + advancestream)    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
 UI + orchestration flow:
 
 ```

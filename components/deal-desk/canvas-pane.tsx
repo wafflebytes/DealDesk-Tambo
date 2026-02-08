@@ -136,6 +136,9 @@ export function CanvasPane({
   const borderColor = isOver ? 'border-emerald-400/50' : 'border-stone-200'
   const glow = isOver ? 'shadow-[0_0_40px_rgba(16,185,129,0.1)]' : 'shadow-2xl'
 
+  const gridSidePaddingPx = isMobile ? 16 : 24
+  const gridRowHeightPx = 24
+
   // Resize Logic
   const [resizingItem, setResizingItem] = useState<{ id: string, startX: number, startSpan: number, currentSpan: number } | null>(null)
 
@@ -232,8 +235,8 @@ export function CanvasPane({
         ...bgStyle,
         // Dotted Grid Visualization (Static Background to show structure)
         backgroundImage: `radial-gradient(${isOver ? '#20808D' : '#d6d3d1'} 2px, transparent 2px)`,
-        backgroundSize: 'calc((100% - 48px) / 12) 24px', // 48px = padding roughly. Approximated for visual guide.
-        backgroundPosition: '24px 24px'
+        backgroundSize: `calc((100% - ${gridSidePaddingPx * 2}px) / 12) ${gridRowHeightPx}px`,
+        backgroundPosition: `${gridSidePaddingPx}px ${gridRowHeightPx}px`
       }}
     >
       {/* View Bar - Skeuomorphic */}

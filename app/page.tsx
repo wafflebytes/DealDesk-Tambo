@@ -238,7 +238,7 @@ export default function DealDeskPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="min-h-[100svh] w-full overflow-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
+      <div className="min-h-[100svh] w-full max-w-[100vw] overflow-x-hidden overflow-y-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
         {/* Global Header - Immersive Skeuomorphic */}
         <header className="h-14 flex-none border-b border-[#20808D]/10 bg-gradient-to-r from-white via-[#f4fafa]/50 to-white flex items-center justify-between px-3 sm:px-5 shadow-sm z-40 relative">
           <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] -z-10" />
@@ -298,7 +298,7 @@ export default function DealDeskPage() {
 
         {/* Resizable Layout */}
         <div className="flex-1 overflow-hidden relative">
-          <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"}>
+          <ResizablePanelGroup key={isMobile ? 'mobile' : 'desktop'} direction={isMobile ? "vertical" : "horizontal"}>
             {/* Left Panel: Editor & Upload & Canvas */}
             <ResizablePanel defaultSize={isMobile ? 60 : 50} minSize={isMobile ? 35 : 35}>
               <div className="h-full overflow-hidden pb-12 relative flex flex-col">
