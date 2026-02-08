@@ -71,7 +71,7 @@ function useTooltip({
   placement = "top",
   open: controlledOpen,
   onOpenChange: setControlledOpen,
-  delay = 600,
+  delay = 0,
   closeDelay = 0,
 }: Omit<TooltipProviderProps, "children"> = {}) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState<boolean>(initialOpen)
@@ -166,9 +166,9 @@ export const TooltipTrigger = forwardRef<HTMLElement, TooltipTriggerProps>(
     const childrenRef = isValidElement(children)
       ? parseInt(version, 10) >= 19
         ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (children as { props: { ref?: React.Ref<any> } }).props.ref
+        (children as { props: { ref?: React.Ref<any> } }).props.ref
         : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (children as any).ref
+        (children as any).ref
       : undefined
     const ref = useMergeRefs([context.refs.setReference, propRef, childrenRef])
 

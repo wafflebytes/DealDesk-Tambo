@@ -452,7 +452,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                 <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
               </div>
             </button>
-            <TooltipProvider>
+            <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <a
@@ -465,7 +465,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                   </a>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Build using Tambo, check out github</p>
+                  <p>Build using Tambo, check out GitHub</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
