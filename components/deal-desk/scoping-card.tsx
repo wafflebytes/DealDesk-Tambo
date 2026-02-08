@@ -92,9 +92,9 @@ function ScopingEnum({ title, description, options = [], onSelect, isSubmitting 
         <p className="text-xs text-stone-500 mb-4 leading-relaxed">{description}</p>
 
         <div className="flex flex-wrap gap-2">
-          {options.map((opt) => (
+          {options.map((opt, i) => (
             <button
-              key={opt.value}
+              key={`${opt.value}-${i}`}
               disabled={isSubmitting}
               onClick={() => onSelect(opt.value, opt.label)}
               className="min-h-[2rem] h-auto py-1.5 px-4 text-xs tracking-tight rounded-lg btn-skeu text-stone-700 font-medium hover:text-stone-900 active:scale-95 transition-all disabled:opacity-50 whitespace-normal text-center bg-stone-50 border border-stone-200 shadow-sm hover:shadow hover:bg-white"
@@ -144,6 +144,24 @@ function ScopingForm({ title, description, formFields = [], submitLabel, onSubmi
                     onClick={() => handleChange(field.id, false)}
                     className={`flex-1 min-w-[40px] py-1.5 text-xs font-medium rounded-md transition-all ${formData[field.id] === false ? 'bg-white shadow-sm text-stone-900 ring-1 ring-black/5' : 'text-stone-500 hover:text-stone-700'}`}
                   >No</button>
+                </div>
+              ) : field.type === 'select' && field.options ? (
+                <div className="relative">
+                  <select
+                    value={formData[field.id] || ''}
+                    onChange={(e) => handleChange(field.id, e.target.value)}
+                    className="w-full input-skeu font-mono text-xs appearance-none pr-8 cursor-pointer"
+                  >
+                    <option value="" disabled>Select...</option>
+                    {field.options.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-stone-500">
+                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
                 </div>
               ) : (
                 <input

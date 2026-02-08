@@ -15,13 +15,29 @@ export const DealRiskSchema = z.object({
 export type DealRiskData = z.infer<typeof DealRiskSchema>;
 
 
-// --- B. Clause Tuner ---
+// --- B. Clause Tuner (Dynamic) ---
+export const ClauseTunerSliderSchema = z.object({
+    id: z.string().describe("Unique identifier for this slider"),
+    label: z.string().describe("Display label, e.g., 'Net Days', 'Cap Amount'"),
+    unit: z.string().optional().describe("Unit suffix, e.g., 'days', '$', '%'"),
+    currentValue: z.number().describe("Current value"),
+    min: z.number().describe("Minimum value"),
+    max: z.number().describe("Maximum value"),
+    step: z.number().optional().default(1).describe("Step increment"),
+});
+
+export const ClauseTunerToggleSchema = z.object({
+    id: z.string().describe("Unique identifier for this toggle"),
+    label: z.string().describe("Display label, e.g., 'Mutual Liability'"),
+    currentValue: z.boolean().describe("Current toggle state"),
+    description: z.string().optional().describe("Tooltip or helper text when enabled"),
+});
+
 export const ClauseTunerSchema = z.object({
-    clauseType: z.string().describe("e.g. Liability Cap"),
-    currentValue: z.number().describe("Current numerical value"),
-    multiplier: z.number().describe("Current multiplier (e.g. 2.5x)"),
-    isMutual: z.boolean(),
-    alternatives: z.array(z.number()).describe("Suggested alternative caps")
+    clauseType: z.string().describe("Title of the clause being tuned"),
+    sliders: z.array(ClauseTunerSliderSchema).min(1).max(3).describe("1-3 sliders for tuning values"),
+    toggles: z.array(ClauseTunerToggleSchema).max(2).optional().describe("0-2 toggles for boolean options"),
+    tags: z.array(z.string()).optional().describe("Context tags to display (e.g. Party, Stance, Priority)"),
 });
 
 export type ClauseTunerData = z.infer<typeof ClauseTunerSchema>;

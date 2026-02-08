@@ -48,8 +48,8 @@ function stripMarkdown(text: string): string {
     .trim()
 }
 
-// Components that are GenUI (not orchestrator tools)
-const GENUI_COMPONENTS = ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'DefinitionBank', 'KnowledgeBank', 'ScopingCard']
+// Components that are GenUI (plus the coordinator meta-tool)
+const GENUI_COMPONENTS = ['RiskRadar', 'ClauseTuner', 'ExtractionChecklist', 'DefinitionBank', 'KnowledgeBank', 'ScopingCard', 'coordinate', 'orchestrate']
 
 // Map sub-agents to user-friendly display names
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
@@ -376,12 +376,28 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
     if (!toolCall || !toolCall.function || !toolCall.function.name) return null;
 
     try {
-      const args = JSON.parse(toolCall.function.arguments || "{}")
+      let args = JSON.parse(toolCall.function.arguments || "{}")
+      let toolName = toolCall.function.name
 
-      // ... imports
+      // 🧠 Handle Coordinator meta-tool (extracts routing result)
+      if (toolName === 'coordinate' || toolName === 'orchestrate') {
+        if (!toolCall.result) return null; // Wait for result
+        try {
+          const result = JSON.parse(toolCall.result);
+          if (result.intent === 'genui' && result.component && result.subAgentResult) {
+            toolName = result.component;
+            args = result.subAgentResult;
+          } else {
+            return null; // Not a GenUI intent
+          }
+        } catch (e) {
+          console.error("Failed to parse coordinator result", e);
+          return null;
+        }
+      }
 
       const Component = (() => {
-        switch (toolCall.function.name) {
+        switch (toolName) {
           case "RiskRadar":
             return <RiskRadar {...(args as unknown as DealRiskData)} />
           case "ClauseTuner":
@@ -400,14 +416,8 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
       if (!Component) return null
 
-      const isElicitation = toolCall.function.name === 'ScopingCard' || toolCall.function.name === 'scopeRequest';
-
       return (
-        <DraggableGenUI
-          id={`${toolCall.function.name}-${toolCall.id || Math.random()}`}
-          type={toolCall.function.name}
-          disableDrag={isElicitation}
-        >
+        <DraggableGenUI id={`${toolCall.function.name}-${toolCall.id || Math.random()}`} type={toolCall.function.name}>
           {Component}
         </DraggableGenUI>
       )

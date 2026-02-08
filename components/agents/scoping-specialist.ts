@@ -100,8 +100,58 @@ const SCOPING_TEMPLATES: Record<string, {
 };
 
 /**
- * Detect which scoping template to use based on the request
+ * Generate scoping card data for ambiguous request using AI Elicitation
  */
+async function scopeRequest(input: ScopingSpecialistInput): Promise<ScopingSpecialistOutput> {
+    const { ambiguousRequest, possibleInterpretations, contextHints, elicitationType } = input;
+
+    // 🎯 SCOPING SPECIALIST LOG
+    console.log('%c   🎯 [Scoping Specialist] Handling ambiguous request (AI-Driven)...', 'color: #a855f7');
+    console.log('%c      Request:', 'color: #a855f7', ambiguousRequest.substring(0, 50) + '...');
+
+    try {
+        // Call the AI Elicitation API
+        const response = await fetch('/api/elicitation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ambiguousRequest,
+                contextHints,
+                possibleInterpretations
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`AI API failed: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('%c      AI Generated Options:', 'color: #a855f7', data);
+
+        return data;
+
+    } catch (error) {
+        console.error('%c      AI Elicitation Failed, falling back to template:', 'color: #ef4444', error);
+
+        // Fallback to static template logic if API fails
+        // Detect the scoping scenario
+        const scenario = detectScopingScenario(ambiguousRequest, contextHints);
+        const template = SCOPING_TEMPLATES[scenario] || SCOPING_TEMPLATES["analysis_type"];
+
+        return {
+            variant: template.variant,
+            title: template.title,
+            description: template.description,
+            submitLabel: template.submitLabel,
+            options: template.options,
+            formFields: template.formFields
+        };
+    }
+}
+
+// Keep helper function for fallback
 function detectScopingScenario(request: string, contextHints?: string): string {
     const lowerRequest = request.toLowerCase();
     const lowerContext = contextHints?.toLowerCase() || "";
@@ -136,55 +186,15 @@ function detectScopingScenario(request: string, contextHints?: string): string {
     return "analysis_type";
 }
 
-/**
- * Generate scoping card data for ambiguous request
- */
-async function scopeRequest(input: ScopingSpecialistInput): Promise<ScopingSpecialistOutput> {
-    const { ambiguousRequest, possibleInterpretations, contextHints, elicitationType } = input;
-
-    // 🎯 SCOPING SPECIALIST LOG
-    console.log('%c   🎯 [Scoping Specialist] Handling ambiguous request...', 'color: #a855f7');
-    console.log('%c      Request:', 'color: #a855f7', ambiguousRequest.substring(0, 50) + '...');
-
-    // Detect the scoping scenario
-    const scenario = detectScopingScenario(ambiguousRequest, contextHints);
-    const template = SCOPING_TEMPLATES[scenario] || SCOPING_TEMPLATES["analysis_type"];
-
-    console.log('%c      Detected Scenario:', 'color: #a855f7', scenario);
-
-    // If caller provided specific interpretations, use those instead
-    if (possibleInterpretations && possibleInterpretations.length > 0) {
-        return {
-            variant: elicitationType === "form" ? "v2" : elicitationType === "confirm" ? "v3" : "v1",
-            title: "Clarification Needed",
-            description: `I want to make sure I understand correctly. Did you mean:`,
-            options: possibleInterpretations.map((interp, i) => ({
-                label: interp,
-                value: `interpretation_${i}`
-            }))
-        };
-    }
-
-    // Use the template
-    return {
-        variant: template.variant,
-        title: template.title,
-        description: template.description,
-        submitLabel: template.submitLabel,
-        options: template.options,
-        formFields: template.formFields
-    };
-}
-
 // ============================================================================
 // TOOL EXPORT
 // ============================================================================
 
 export const scopingSpecialistTool: TamboTool = {
     name: "scopeRequest",
-    description: `🎯 SCOPING SPECIALIST SUB-AGENT (Elicitation Handler)
+    description: `🎯 SCOPING SPECIALIST SUB-AGENT (AI Elicitation Handler)
 
-Handles ambiguous requests by generating clarifying questions.
+Handles ambiguous requests by generating clarifying questions dynamically using AI.
 
 ## When To Call
 - User request is vague ("help me with this")
@@ -193,22 +203,10 @@ Handles ambiguous requests by generating clarifying questions.
 - Need user confirmation before proceeding
 
 ## What It Does
-1. Analyzes the ambiguous request
+1. Analyzes the ambiguous request using an LLM
 2. Identifies possible interpretations
-3. Generates appropriate elicitation UI
+3. Generates appropriate elicitation UI (Choice, Form, or Confirm)
 4. Returns structured options for user to choose
-
-## Elicitation Types (Variants)
-• v1 (Choice): Button options to pick from
-• v2 (Form): Input fields to fill in
-• v3 (Confirmation): Yes/No confirmation
-
-## Common Scenarios
-• no_contract: Prompt to provide contract
-• analysis_type: Choose between analysis modes
-• negotiation_stance: Select Pro-Client/Neutral/Pro-Vendor
-• clause_selection: Specify which clause to work on
-• confirmation: Confirm before making changes
 
 ## Output
 Returns data structured for ScopingCard component.
