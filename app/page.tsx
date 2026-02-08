@@ -238,7 +238,7 @@ export default function DealDeskPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="min-h-[100svh] w-full max-w-[100vw] overflow-x-hidden overflow-y-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
+      <div className="min-h-[100svh] w-full max-w-[100vw] overflow-x-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
         {/* Global Header - Immersive Skeuomorphic */}
         <header className="h-14 flex-none border-b border-[#20808D]/10 bg-gradient-to-r from-white via-[#f4fafa]/50 to-white flex items-center justify-between px-3 sm:px-5 shadow-sm z-40 relative">
           <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] -z-10" />
