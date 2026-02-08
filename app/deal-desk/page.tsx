@@ -38,6 +38,8 @@ export default function DealDeskPage() {
 
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
 
+  const focusedCanvasItem = focusedItemId ? canvasItems.find((item) => item.id === focusedItemId) : undefined
+
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -313,7 +315,7 @@ export default function DealDeskPage() {
         </DragOverlay>
 
         {/* Global Focus Overlay - Rendered at Root to avoid z-index clipping */}
-        {focusedItemId && (
+        {focusedCanvasItem && (
           <div className="fixed inset-0 z-[20000] flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200">
             {/* Dimmed Background */}
             <div
@@ -334,7 +336,7 @@ export default function DealDeskPage() {
               </button>
               {/* Render the full-size component */}
               <div className="w-full h-full shadow-2xl rounded-2xl overflow-y-auto custom-scrollbar ring-1 ring-white/20 bg-white">
-                {renderItem(focusedItemId)}
+                {renderItem(focusedCanvasItem.id)}
               </div>
             </div>
           </div>
