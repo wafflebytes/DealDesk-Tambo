@@ -69,7 +69,16 @@ export function CanvasPane({
 
   // Handle click to focus (if not editing and not dragging)
   // Handle click to focus (if not editing and not dragging)
-  const handleItemClick = (id: string) => {
+  const handleItemClick = (e: React.MouseEvent, id: string) => {
+    // Check if the click target is an interactive element
+    // We want to allow interaction with buttons/inputs without triggering the "Focus Mode"
+    const target = e.target as HTMLElement
+    const isInteractive = target.closest('button, input, select, textarea, a, [role="button"], [role="checkbox"], [role="menuitem"], label')
+
+    if (isInteractive) {
+      return
+    }
+
     if (!isEditMode && !resizingItem && onFocusItem) {
       onFocusItem(id)
     }
@@ -82,7 +91,7 @@ export function CanvasPane({
 
   // Render dropped items - prefer stored component, fall back to ID-based rendering
   const renderItem = (id: string) => {
-    console.log('[Canvas] renderItem called with ID:', id, 'hasStoredComponent:', !!storedComponents[id])
+    // console.log('[Canvas] renderItem called with ID:', id, 'hasStoredComponent:', !!storedComponents[id])
 
     // First, check if we have a stored component from the drag
     if (storedComponents[id]) {
@@ -93,9 +102,8 @@ export function CanvasPane({
       )
     }
 
-    // Fallback: try to match by ID pattern (for legacy/manual testing)
     const lowerId = id.toLowerCase()
-    if (lowerId.includes('risk-radar') || lowerId.includes('riskradar') || lowerId.includes('risk')) return <RiskRadar />
+    if (lowerId.includes('risk-radar') || lowerId.includes('riskradar') || lowerId.includes('risk')) return <RiskRadar risks={{ Liability: 0.2, IP: 0.1, Term: 0.3, Payment: 0.1 }} followUps={[]} />
     if (lowerId.includes('clause-tuner') || lowerId.includes('clausetuner') || lowerId.includes('clause')) return <ClauseTuner />
     if (lowerId.includes('extraction-checklist') || lowerId.includes('checklist') || lowerId.includes('extraction') || lowerId.includes('obligation')) return <ExtractionChecklist />
     if (lowerId.includes('knowledge-bank') || lowerId.includes('knowledgebank') || lowerId.includes('definition') || lowerId.includes('knowledge')) return <DefinitionBank />
@@ -382,7 +390,7 @@ export function CanvasPane({
                 */}
                     <div
                       className={`relative z-10 h-full transition-opacity duration-200 ${isResizingAny && !isResizingThis ? 'opacity-0' : 'opacity-100'}`}
-                      onClick={() => handleItemClick(item.id)}
+                      onClick={(e) => handleItemClick(e, item.id)}
                     >
                       <div className="origin-top-left scale-[0.9] w-[111%] cursor-pointer hover:ring-2 hover:ring-[#20808D]/20 hover:shadow-lg rounded-xl transition-all duration-300">
                         {renderItem(item.id)}

@@ -400,16 +400,33 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
       const Component = (() => {
         switch (toolName) {
           case "RiskRadar":
+          case "analyzeContractRisks":
             return <RiskRadar {...(args as unknown as DealRiskData)} />
           case "ClauseTuner":
+          case "negotiateClause":
             return <ClauseTuner {...args as Partial<ClauseTunerData>} />
           case "ExtractionChecklist":
+          case "extractObligations":
             return <ExtractionChecklist {...args as Partial<ChecklistData>} />
           case "DefinitionBank":
           case "KnowledgeBank":
+          case "curateDefinitions":
             return <DefinitionBank {...args as Partial<DefinitionBankData>} />
           case "ScopingCard":
-            return <ScopingCard {...args as Partial<ScopingData>} />
+          case "scopeRequest":
+            // 🧠 Critical: Use the RESULT of the elicitation, not the input arguments
+            if (toolCall.result) {
+              try {
+                const result = typeof toolCall.result === 'string' ? JSON.parse(toolCall.result) : toolCall.result;
+                return <ScopingCard {...result} />
+              } catch (e) {
+                console.error("Failed to parse ScopingCard result", e);
+                return <ScopingCard {...args as Partial<ScopingData>} /> // Fallback
+              }
+            }
+            // If still loading/processing, we can optionally show a loading state or the basic card
+            // For now, return null to avoid flashing empty state, or render with loading prop
+            return null;
           default:
             return null
         }
