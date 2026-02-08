@@ -119,7 +119,7 @@ function classifyIntent(message: string): {
     }
 
     // Clause negotiation patterns -> Route to scoping first to collect params
-    if (lowerMessage.includes("tune") || lowerMessage.includes("adjust") || lowerMessage.includes("negotiate") || lowerMessage.includes("cap") || lowerMessage.includes("modify")) {
+    if (lowerMessage.includes("tune") || lowerMessage.includes("adjust") || lowerMessage.includes("refine") || lowerMessage.includes("rewrite") || lowerMessage.includes("negotiate") || lowerMessage.includes("cap") || lowerMessage.includes("modify")) {
         return {
             routeToAgent: "scopeRequest",
             isTextResponse: false,

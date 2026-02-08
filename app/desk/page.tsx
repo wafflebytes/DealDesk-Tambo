@@ -18,6 +18,7 @@ import { ContractGeneratingView } from "@/components/deal-desk/contract-generati
 import { Scale, ChevronDown, Share2, Bell, Settings, X } from "lucide-react"
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { useIsMobile } from "@/components/ui/use-mobile"
 
 type AppState = 'empty' | 'processing' | 'active'
 
@@ -37,6 +38,8 @@ export default function DealDeskPage() {
   const [docFileName, setDocFileName] = useState<string | null>(null)
 
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
+
+  const isMobile = useIsMobile()
 
 
   const sensors = useSensors(
@@ -192,17 +195,17 @@ export default function DealDeskPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
+      <div className="h-[100svh] w-full overflow-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
         {/* Global Header - Immersive Skeuomorphic */}
-        <header className="h-14 flex-none border-b border-[#20808D]/10 bg-gradient-to-r from-white via-[#f4fafa]/50 to-white flex items-center justify-between px-5 shadow-sm z-40 relative">
+        <header className="h-14 flex-none border-b border-[#20808D]/10 bg-gradient-to-r from-white via-[#f4fafa]/50 to-white flex items-center justify-between px-3 shadow-sm z-40 relative sm:px-5">
           <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] -z-10" />
           {/* Left Side */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             {/* Logo - Minimal Design */}
             <div className="flex items-center gap-2.5">
               <Scale className="w-5 h-5 text-[#20808D]" strokeWidth={2.0} />
               <h1
-                className="font-serif text-[22px] tracking-[-0.03em] text-[#0d3d43] pt-0.5 leading-none"
+                className="font-serif text-[18px] tracking-[-0.03em] text-[#0d3d43] pt-0.5 leading-none sm:text-[22px]"
                 style={{ fontWeight: 550 }}
               >
                 The Deal Desk
@@ -210,10 +213,10 @@ export default function DealDeskPage() {
             </div>
 
             {/* Divider */}
-            <div className="h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100" />
+            <div className="hidden h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100 sm:block" />
 
             {/* Context / Project Switcher - Skeuomorphic Dropdown */}
-            <button className="flex items-center gap-2 px-3 pl-3.5 py-1.5 rounded-lg inset-skeu bg-stone-50/50 hover:bg-white transition-all group">
+            <button className="hidden items-center gap-2 px-3 pl-3.5 py-1.5 rounded-lg inset-skeu bg-stone-50/50 hover:bg-white transition-all group sm:flex">
               <span className="text-sm font-medium text-stone-700 group-hover:text-stone-900">
                 {appState === 'active' ? (docFileName || "Acme Corp MSA") : "New Project"}
               </span>
@@ -223,21 +226,23 @@ export default function DealDeskPage() {
 
           {/* Right Side */}
           <div className="flex items-center gap-2">
-            {/* Icon Buttons */}
-            <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
-              <Bell className="w-3.5 h-3.5" />
-            </button>
-            <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
-              <Settings className="w-3.5 h-3.5" />
-            </button>
+            <div className="hidden items-center gap-2 sm:flex">
+              {/* Icon Buttons */}
+              <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
+                <Bell className="w-3.5 h-3.5" />
+              </button>
+              <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
+                <Settings className="w-3.5 h-3.5" />
+              </button>
 
-            {/* Divider */}
-            <div className="h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100 mx-1" />
+              {/* Divider */}
+              <div className="h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100 mx-1" />
 
-            {/* Share Button - Compact Icon */}
-            <button className="w-8 h-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95 group">
-              <Share2 className="w-3.5 h-3.5 group-hover:text-stone-900 transition-colors" />
-            </button>
+              {/* Share Button - Compact Icon */}
+              <button className="w-8 h-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95 group">
+                <Share2 className="w-3.5 h-3.5 group-hover:text-stone-900 transition-colors" />
+              </button>
+            </div>
 
             {/* Profile Avatar - Smaller to match */}
             <div className="relative ml-1">
@@ -252,10 +257,10 @@ export default function DealDeskPage() {
 
         {/* Resizable Layout */}
         <div className="flex-1 overflow-hidden relative">
-          <ResizablePanelGroup direction="horizontal">
+          <ResizablePanelGroup direction={isMobile ? "vertical" : "horizontal"}>
             {/* Left Panel: Editor & Upload & Canvas */}
-            <ResizablePanel defaultSize={50} minSize={35}>
-              <div className="h-full overflow-hidden pb-12 relative flex flex-col">
+            <ResizablePanel defaultSize={isMobile ? 62 : 50} minSize={isMobile ? 40 : 35}>
+              <div className="h-full overflow-hidden pb-16 sm:pb-12 relative flex flex-col">
                 <div className="flex-1 overflow-hidden">
                   {isContractGenerating && <ContractGeneratingView contractType={generatingContractType || undefined} />}
                   {!isContractGenerating && appState === 'empty' && <UploadZone onUpload={handleUpload} onDraft={handleDraft} />}
@@ -267,7 +272,6 @@ export default function DealDeskPage() {
                     />
                   )}
                 </div>
-
 
                 <CanvasPane
                   forceExpanded={isCanvasExpanded}
@@ -284,8 +288,14 @@ export default function DealDeskPage() {
             <ResizableHandle withHandle />
 
             {/* Right Panel: Chat */}
-            <ResizablePanel defaultSize={28} minSize={20} maxSize={65}>
-              <div className="h-full overflow-hidden border-l border-stone-200 shadow-[-1px_0_4px_rgba(0,0,0,0.02)] z-10 bg-stone-50/50">
+            <ResizablePanel defaultSize={isMobile ? 38 : 28} minSize={isMobile ? 25 : 20} maxSize={isMobile ? 60 : 65}>
+              <div
+                className={
+                  isMobile
+                    ? "h-full overflow-hidden border-t border-stone-200 shadow-[0_-1px_4px_rgba(0,0,0,0.02)] z-10 bg-stone-50/50"
+                    : "h-full overflow-hidden border-l border-stone-200 shadow-[-1px_0_4px_rgba(0,0,0,0.02)] z-10 bg-stone-50/50"
+                }
+              >
                 <TamboChat appState={appState} />
               </div>
             </ResizablePanel>
@@ -327,9 +337,9 @@ export default function DealDeskPage() {
             >
               <button
                 onClick={() => setFocusedItemId(null)}
-                className="absolute -top-12 right-0 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md text-sm font-medium transition-colors flex items-center gap-2"
+                className="absolute top-3 right-3 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md text-xs font-medium transition-colors flex items-center gap-2 sm:-top-12 sm:right-0 sm:px-4 sm:text-sm"
               >
-                Close View <X className="w-4 h-4" /> {/* X is probably not imported in page.tsx, need to verify */}
+                Close View <X className="w-4 h-4" />
               </button>
               {/* Render the full-size component */}
               <div className="w-full h-full shadow-2xl rounded-2xl overflow-y-auto custom-scrollbar ring-1 ring-white/20 bg-white">

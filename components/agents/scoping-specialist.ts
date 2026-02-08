@@ -171,8 +171,8 @@ function detectScopingScenario(request: string, contextHints?: string): string {
         return "negotiation_stance";
     }
 
-    // Check for clause tuning without specific clause
-    if ((lowerRequest.includes("tune") || lowerRequest.includes("adjust")) &&
+    // Check for clause refinement without specific clause
+    if ((lowerRequest.includes("tune") || lowerRequest.includes("adjust") || lowerRequest.includes("refine") || lowerRequest.includes("rewrite")) &&
         !lowerRequest.includes("section") && !lowerRequest.includes("clause")) {
         return "clause_selection";
     }

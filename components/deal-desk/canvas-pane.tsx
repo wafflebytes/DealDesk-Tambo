@@ -154,7 +154,7 @@ export function CanvasPane({
   // Logic 2 (Content): Auto-pinned (stays open). Unpinning reverts to Empty behavior.
   const shouldExpand = isPinned || isHovered || isOver || forceExpanded
 
-  const heightClass = shouldExpand ? 'h-[45vh]' : 'h-16'
+  const heightClass = shouldExpand ? 'h-[50svh] sm:h-[45vh]' : 'h-14 sm:h-16'
   const bgStyle = isOver ? { backgroundColor: '#F5F5F4' } : { backgroundColor: '#FDFCF8' }
   const borderColor = isOver ? 'border-emerald-400/50' : 'border-stone-200'
   const glow = isOver ? 'shadow-[0_0_40px_rgba(16,185,129,0.1)]' : 'shadow-2xl'
@@ -174,7 +174,7 @@ export function CanvasPane({
   // Better Search Mapping
   const getComponentName = (id: string) => {
     if (id.includes('risk-radar')) return "Risk Radar Analysis"
-    if (id.includes('clause-tuner')) return "Clause Tuner Adjustment"
+    if (id.includes('clause-tuner')) return "Clause Refinement"
     if (id.includes('checklist')) return "Extraction Checklist"
     if (id.includes('definitions')) return "Definition Bank"
     if (id.includes('explainer')) return "Definition Explainer"
@@ -250,7 +250,7 @@ export function CanvasPane({
       ref={setNodeRef}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`absolute bottom-6 left-6 right-6 ${heightClass} transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden group rounded-2xl border ${borderColor} ${glow} z-30`}
+      className={`absolute bottom-3 left-3 right-3 ${heightClass} transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden group rounded-2xl border ${borderColor} ${glow} z-30 sm:bottom-6 sm:left-6 sm:right-6`}
       style={{
         ...bgStyle,
         // Dotted Grid Visualization (Static Background to show structure)
