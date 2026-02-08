@@ -438,12 +438,13 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
       />
 
       {/* Header - Fixed in Flow */}
-      <div className="flex-none px-5 py-3 bg-white/80 backdrop-blur-md border-b border-slate-200 z-30">
+      {/* Header - Fixed in Flow - Premium Polish */}
+      <div className="flex-none px-5 py-3 bg-[#fcfaf8]/95 backdrop-blur-xl border-b border-stone-200/60 z-30 supports-[backdrop-filter]:bg-[#fcfaf8]/80">
         <div className="flex items-center justify-between">
           <div className={`flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'hidden' : 'flex'}`}>
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+              className="h-8 w-8 rounded-lg border border-stone-200/60 bg-white flex items-center justify-center text-stone-500 hover:text-stone-700 hover:bg-stone-50 transition-all shadow-sm"
             >
               <div className="flex flex-col gap-0.5">
                 <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
@@ -458,7 +459,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                     href="https://github.com/wafflebytes/DealDesk-Tambo"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+                    className="h-8 w-8 rounded-lg border border-stone-200/60 bg-white flex items-center justify-center text-stone-500 hover:text-stone-700 hover:bg-stone-50 transition-all shadow-sm"
                   >
                     <Github className="w-4 h-4" />
                   </a>
@@ -471,13 +472,13 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
           </div>
 
           <div className={`flex flex-col items-center flex-1 ${isSearchFocused ? 'hidden' : 'flex'}`}>
-            <h2 className="font-serif text-base font-bold text-slate-800 leading-none mb-0.5">Maven</h2>
-            <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Assistant</p>
+            <h2 className="font-serif text-lg font-bold text-stone-800 leading-none mb-0.5 tracking-tight">Maven</h2>
+            <p className="text-[9px] font-bold text-stone-400 uppercase tracking-[0.2em]">Assistant</p>
           </div>
 
           <div className={`relative flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'flex-1' : 'w-32'}`}>
             <div className={`relative group w-full`}>
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
               <input
                 type="text"
                 value={searchQuery}
@@ -485,7 +486,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => !searchQuery && setIsSearchFocused(false)}
                 placeholder="Search..."
-                className={`h-8 pl-8 pr-7 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:bg-white transition-all w-full`}
+                className={`h-8 pl-8 pr-7 text-xs bg-stone-100/50 border-0 ring-1 ring-stone-200/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#20808D]/20 focus:bg-white transition-all w-full placeholder:text-stone-400 font-medium`}
               />
             </div>
             {isSearchFocused && (
