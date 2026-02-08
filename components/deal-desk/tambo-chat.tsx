@@ -450,9 +450,15 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
                 <span className="w-4 h-0.5 bg-slate-400 rounded-full" />
               </div>
             </button>
-            <button className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
+            <a
+              href="https://github.com/wafflebytes/DealDesk-Tambo"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Build using Tambo, check out github"
+              className="h-8 w-8 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+            >
               <Github className="w-4 h-4" />
-            </button>
+            </a>
           </div>
 
           <div className={`flex flex-col items-center flex-1 ${isSearchFocused ? 'hidden' : 'flex'}`}>
@@ -460,7 +466,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
             <p className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Assistant</p>
           </div>
 
-          <div className={`relative flex items-center gap-2 ${isSearchFocused ? 'w-full' : 'w-auto'}`}>
+          <div className={`relative flex items-center gap-2 transition-all duration-300 ${isSearchFocused ? 'flex-1' : 'w-auto'}`}>
             <div className="relative group">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
@@ -748,7 +754,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
       <div className="flex-none p-3 px-4 bg-white border-t border-slate-200 z-20 relative">
         <div className="max-w-3xl mx-auto relative group/input">
           {/* Main Pill - Skeuomorphic */}
-          <div className="flex items-end gap-2 p-1.5 rounded-[2rem] bg-white border border-stone-200 shadow-[0_8px_30px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.02)] ring-4 ring-stone-50/50 transition-shadow duration-300 ease-out">
+          <div className="flex items-center gap-2 p-1.5 rounded-[2rem] bg-white border border-stone-200 shadow-[0_8px_30px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.02)] ring-4 ring-stone-50/50 transition-shadow duration-300 ease-out">
 
             {/* Attachment Button - Anchored to bottom */}
             <div className="pb-0.5 pl-0.5">

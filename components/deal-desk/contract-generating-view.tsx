@@ -33,12 +33,17 @@ export function ContractGeneratingView({ contractType }: ContractGeneratingViewP
                 <h2 className="font-serif text-xl font-semibold text-stone-800 tracking-tight">
                     Drafting Your Contract
                 </h2>
-                <p className="text-sm text-stone-500 max-w-xs leading-relaxed">
-                    {contractType
-                        ? `Generating a professional ${contractType}...`
-                        : "Generating a professional contract for you..."
-                    }
-                </p>
+                <div className="space-y-1">
+                    <p className="text-sm text-stone-500 max-w-xs mx-auto leading-relaxed">
+                        {contractType
+                            ? `Generating a professional ${contractType}...`
+                            : "Generating a professional contract for you..."
+                        }
+                    </p>
+                    <p className="text-xs text-stone-400 italic animate-pulse">
+                        Please serve yourself a coffee, this might take a moment...
+                    </p>
+                </div>
             </div>
 
             {/* Progress Shimmer */}
