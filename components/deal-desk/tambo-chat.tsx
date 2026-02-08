@@ -751,7 +751,7 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
         ) : (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="w-20 h-20 mb-6 rounded-2xl inset-skeu flex items-center justify-center opacity-50">
-              <Scale className="w-8 h-8 text-stone-400" />
+              <Scale className="block w-8 h-8 text-stone-400 -translate-y-px" />
             </div>
 
             <h3 className="text-stone-900 font-serif text-lg mb-2">Welcome to The Deal Desk</h3>
