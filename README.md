@@ -10,6 +10,10 @@ Landing (desktop)
 
 ![Landing page - desktop](docs/screenshots/landing-desktop.png)
 
+Landing (mobile)
+
+![Landing page - mobile](docs/screenshots/landing-mobile.png)
+
 App (desktop)
 
 ![App - desktop](docs/screenshots/app-desktop.png)
@@ -92,8 +96,9 @@ Next.js route handler
 
 ## Where the key pieces live (Engineering)
 
-* App shell + responsive layout: `app/page.tsx`
-  * Tip: `/?demo=1` loads a pre-filled sample contract for quick evaluation.
+* Landing page: `app/page.tsx`
+* App shell + responsive layout: `app/desk/page.tsx`
+  * Tip: `/desk?demo=1` loads a pre-filled sample contract for quick evaluation.
 * Tambo registration (GenUI components + tools): `components/providers/tambo-wrapper.tsx`
 * Chat UI + streaming stage UX: `components/deal-desk/tambo-chat.tsx`
 * Document editor + document context injection: `components/deal-desk/document-editor.tsx`
@@ -193,8 +198,9 @@ npm run dev
 
 Open:
 
-* `http://localhost:3000/` (main app)
-* `http://localhost:3000/?demo=1` (pre-filled contract)
+* `http://localhost:3000/` (landing)
+* `http://localhost:3000/desk` (main app)
+* `http://localhost:3000/desk?demo=1` (pre-filled contract)
 * `http://localhost:3000/components` (GenUI component gallery)
 
 ## Notes

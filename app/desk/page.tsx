@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, DragStartEvent, DragEndEvent } from "@dnd-kit/core"
 import { DocumentEditor } from "@/components/deal-desk/document-editor"
 import { TamboChat } from "@/components/deal-desk/tambo-chat"
@@ -18,10 +18,40 @@ import { ContractGeneratingView } from "@/components/deal-desk/contract-generati
 import { Scale, ChevronDown, Share2, Bell, Settings, X } from "lucide-react"
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
+import { useIsMobile } from "@/components/ui/use-mobile"
 
 type AppState = 'empty' | 'processing' | 'active'
 
+const DEMO_CONTRACT = `# Master Services Agreement (Sample)
+
+This Master Services Agreement (**"Agreement"**) is entered into as of the **Effective Date** by and between:
+
+**Party A:** Acme Corporation, a Delaware corporation
+
+**Party B:** TechVentures LLC, a California limited liability company
+
+## 1. Scope of Services
+
+1.1 **"Services"** means the consulting and advisory services described in each Statement of Work.
+
+1.2 **"Deliverables"** means all work product created under this Agreement.
+
+## 2. Term and Termination
+
+2.1 This Agreement shall commence on the Effective Date and continue for a period of twelve (12) months.
+
+2.2 Either party may terminate with thirty (30) days written notice.
+
+## 3. Liability
+
+3.1 **Limitation of Liability:** Liability cap shall not exceed $50,000 regardless of the form of action.
+
+[Signature blocks to follow]`
+
 export default function DealDeskPage() {
+  const isMobile = useIsMobile()
+  const [demoMode, setDemoMode] = useState(false)
+
   const [appState, setAppState] = useState<AppState>('empty')
   const [isDrafting, setIsDrafting] = useState(false)
   const [isContractGenerating, setIsContractGenerating] = useState(false)
@@ -37,6 +67,20 @@ export default function DealDeskPage() {
   const [docFileName, setDocFileName] = useState<string | null>(null)
 
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setDemoMode(new URLSearchParams(window.location.search).get('demo') === '1')
+  }, [])
+
+  useEffect(() => {
+    if (!demoMode) return
+    if (appState !== 'empty') return
+    if (docContent) return
+
+    setDocContent(DEMO_CONTRACT)
+    setDocFileName('sample-contract.md')
+    setAppState('active')
+  }, [demoMode, appState, docContent])
 
 
   const sensors = useSensors(
@@ -192,12 +236,12 @@ export default function DealDeskPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
+      <div className="min-h-[100svh] w-full max-w-[100vw] overflow-x-hidden bg-gradient-to-br from-[#f4fafa] via-white to-[#edf3f3] flex flex-col">
         {/* Global Header - Immersive Skeuomorphic */}
-        <header className="h-14 flex-none border-b border-[#20808D]/10 bg-gradient-to-r from-white via-[#f4fafa]/50 to-white flex items-center justify-between px-5 shadow-sm z-40 relative">
+        <header className="h-14 flex-none border-b border-[#20808D]/10 bg-gradient-to-r from-white via-[#f4fafa]/50 to-white flex items-center justify-between px-3 sm:px-5 shadow-sm z-40 relative">
           <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] -z-10" />
           {/* Left Side */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             {/* Logo - Minimal Design */}
             <div className="flex items-center gap-2.5">
               <Scale className="w-5 h-5 text-[#20808D]" strokeWidth={2.0} />
@@ -210,10 +254,10 @@ export default function DealDeskPage() {
             </div>
 
             {/* Divider */}
-            <div className="h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100" />
+            <div className="hidden sm:block h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100" />
 
             {/* Context / Project Switcher - Skeuomorphic Dropdown */}
-            <button className="flex items-center gap-2 px-3 pl-3.5 py-1.5 rounded-lg inset-skeu bg-stone-50/50 hover:bg-white transition-all group">
+            <button className="hidden sm:flex items-center gap-2 px-3 pl-3.5 py-1.5 rounded-lg inset-skeu bg-stone-50/50 hover:bg-white transition-all group">
               <span className="text-sm font-medium text-stone-700 group-hover:text-stone-900">
                 {appState === 'active' ? (docFileName || "Acme Corp MSA") : "New Project"}
               </span>
@@ -222,17 +266,17 @@ export default function DealDeskPage() {
           </div>
 
           {/* Right Side */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-none">
             {/* Icon Buttons */}
-            <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
+            <button className="hidden sm:flex w-7 h-7 rounded-lg btn-skeu items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
               <Bell className="w-3.5 h-3.5" />
             </button>
-            <button className="w-7 h-7 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
+            <button className="hidden sm:flex w-7 h-7 rounded-lg btn-skeu items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95">
               <Settings className="w-3.5 h-3.5" />
             </button>
 
             {/* Divider */}
-            <div className="h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100 mx-1" />
+            <div className="hidden sm:block h-6 w-px bg-gradient-to-b from-stone-100 via-stone-300 to-stone-100 mx-1" />
 
             {/* Share Button - Compact Icon */}
             <button className="w-8 h-8 rounded-lg btn-skeu flex items-center justify-center text-stone-500 hover:text-stone-700 transition-transform active:scale-95 group">
@@ -252,9 +296,9 @@ export default function DealDeskPage() {
 
         {/* Resizable Layout */}
         <div className="flex-1 overflow-hidden relative">
-          <ResizablePanelGroup direction="horizontal">
+          <ResizablePanelGroup key={isMobile ? 'mobile' : 'desktop'} direction={isMobile ? "vertical" : "horizontal"}>
             {/* Left Panel: Editor & Upload & Canvas */}
-            <ResizablePanel defaultSize={50} minSize={35}>
+            <ResizablePanel defaultSize={isMobile ? 60 : 50} minSize={35}>
               <div className="h-full overflow-hidden pb-12 relative flex flex-col">
                 <div className="flex-1 overflow-hidden">
                   {isContractGenerating && <ContractGeneratingView contractType={generatingContractType || undefined} />}
@@ -284,8 +328,8 @@ export default function DealDeskPage() {
             <ResizableHandle withHandle />
 
             {/* Right Panel: Chat */}
-            <ResizablePanel defaultSize={28} minSize={20} maxSize={65}>
-              <div className="h-full overflow-hidden border-l border-stone-200 shadow-[-1px_0_4px_rgba(0,0,0,0.02)] z-10 bg-stone-50/50">
+            <ResizablePanel defaultSize={isMobile ? 40 : 28} minSize={isMobile ? 25 : 20} maxSize={65}>
+              <div className={`h-full overflow-hidden shadow-[-1px_0_4px_rgba(0,0,0,0.02)] z-10 bg-stone-50/50 ${isMobile ? 'border-t border-stone-200' : 'border-l border-stone-200'}`}>
                 <TamboChat appState={appState} />
               </div>
             </ResizablePanel>
