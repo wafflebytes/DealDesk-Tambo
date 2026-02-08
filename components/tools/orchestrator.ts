@@ -51,7 +51,7 @@ async function orchestrate(input: z.infer<typeof OrchestrationInputSchema>) {
     // Heuristic classification (LLM will override with better judgment)
     const genUIPatterns = [
         { pattern: /risk|analyze|health|profile|deal/, component: "RiskRadar" as const },
-        { pattern: /tune|adjust|cap|negotiate|increase|decrease|liability/, component: "ClauseTuner" as const },
+        { pattern: /(tune|adjust|cap|negotiate|increase|decrease|liability|indemn|termination|confidential)|(edit|rewrite|revise|redline).*(clause|liability|cap|indemn|termination|confidential)/, component: "ClauseTuner" as const },
         { pattern: /obligation|task|checklist|duties|requirement|action/, component: "ExtractionChecklist" as const },
         { pattern: /defin|glossary|term|what does .+ mean/, component: "KnowledgeBank" as const }
     ];
@@ -83,7 +83,7 @@ This tool classifies user intent and decides the response format:
 
 → GENUI (interactive component):
   • "analyze risk" / "deal health" / "risk profile" → RiskRadar
-  • "tune clause" / "adjust cap" / "negotiate" → ClauseTuner  
+  • "edit clause" / "rewrite" / "adjust cap" / "negotiate" → ClauseTuner
   • "obligations" / "tasks" / "checklist" / "action items" → ExtractionChecklist
   • "definitions" / "what does X mean" / "glossary" → KnowledgeBank
 

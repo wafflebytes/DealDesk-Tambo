@@ -133,7 +133,7 @@ export function SmartDraftModal({ onClose, onDraft, isGenerating = false }: Smar
                 <div className="p-6 space-y-5 bg-stone-50/30 overflow-y-auto flex-1">
 
                     {/* Row 1: Contract Type + Jurisdiction */}
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div className="space-y-2">
                             <Label className="text-[11px] uppercase tracking-wider text-stone-500 font-bold px-1">Contract Type</Label>
                             <div className="relative group">
@@ -184,7 +184,7 @@ export function SmartDraftModal({ onClose, onDraft, isGenerating = false }: Smar
                     {/* Row 2: Parties */}
                     <div className="space-y-2">
                         <Label className="text-[11px] uppercase tracking-wider text-stone-500 font-bold px-1">Parties</Label>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <input
                                 type="text"
                                 placeholder="Your Company Name"
@@ -203,7 +203,7 @@ export function SmartDraftModal({ onClose, onDraft, isGenerating = false }: Smar
                     </div>
 
                     {/* Row 3: Term, Liability Cap, Payment Terms */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label className="text-[11px] uppercase tracking-wider text-stone-500 font-bold px-1">Term Length</Label>
                             <div className="relative group">

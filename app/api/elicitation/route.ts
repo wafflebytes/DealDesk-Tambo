@@ -29,11 +29,11 @@ Your job is to generate a "Scoping Card" (Elicitation UI) to help users clarify 
 
 **USE 'v1' (Choice Card)** when the user's request is HIGH-LEVEL or AMBIGUOUS, meaning they haven't specified WHICH tool/analysis they want.
   - Examples: "help me", "help me with this contract", "what can you do?", "analyze this"
-  - The options should route to specific GenUI components: "Analyze Risk", "Tune a Clause", "Extract Obligations", "Check Definitions".
+  - The options should route to specific GenUI components: "Analyze Risk", "Edit a Clause", "Extract Obligations", "Check Definitions".
   - v1 options have: label (short, like "Analyze Risk"), value (like "risk_analysis").
 
-**USE 'v2' (Form Card)** when the user has ALREADY CHOSEN a specific action/tool (like "tune the clause") and you need to collect PARAMETERS before executing.
-  - Examples: "tune the clause", "negotiate liability", "adjust the cap"
+**USE 'v2' (Form Card)** when the user has ALREADY CHOSEN a specific action/tool (like "edit the clause") and you need to collect PARAMETERS before executing.
+  - Examples: "edit the clause", "rewrite this clause", "negotiate liability", "adjust the cap"
   - The form MUST have exactly 4 SHORT fields:
     1. "Your Party" (select: EXTRACT FROM CONTEXT. Look for the two main parties in the contract. Format: "Name (Role)". Fallback: ["Client", "Service Provider"])
     2. "Target Clause" (text, placeholder: "e.g., Liability Cap")

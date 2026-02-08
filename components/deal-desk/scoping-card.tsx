@@ -39,7 +39,7 @@ export function ScopingCard(props: Partial<ScopingData>) {
 
       // Heuristic to trigger the right agent based on form fields
       let prefix = "Here are the details:"
-      if (summary.includes("clause_type")) prefix = "Tune clause with these parameters:"
+      if (summary.includes("clause_type")) prefix = "Edit clause with these parameters:"
 
       await sendThreadMessage(`${prefix} ${summary}`)
       setIsSubmitted(true)
