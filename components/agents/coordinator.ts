@@ -90,9 +90,9 @@ const SUB_AGENTS = {
     scopeRequest: {
         tool: scopingSpecialistTool,
         component: "ScopingCard" as const,
-        prepareInput: (_: string, userMessage: string) => ({
-            userMessage,
-            context: "ambiguous"
+        prepareInput: (contractText: string, userMessage: string) => ({
+            ambiguousRequest: userMessage,
+            contextHints: `Contract Context (First 2000 chars): ${contractText.slice(0, 2000)}...`
         })
     }
 };
@@ -118,12 +118,12 @@ function classifyIntent(message: string): {
         };
     }
 
-    // Clause negotiation patterns
+    // Clause negotiation patterns -> Route to scoping first to collect params
     if (lowerMessage.includes("tune") || lowerMessage.includes("adjust") || lowerMessage.includes("negotiate") || lowerMessage.includes("cap") || lowerMessage.includes("modify")) {
         return {
-            routeToAgent: "negotiateClause",
+            routeToAgent: "scopeRequest",
             isTextResponse: false,
-            reasoning: "User wants to negotiate clause terms. Routing to Clause Negotiator.",
+            reasoning: "User wants to negotiate clause terms. Routing to Scoping Specialist to collect party role and parameters.",
             confidence: 0.95
         };
     }
@@ -149,11 +149,16 @@ function classifyIntent(message: string): {
     }
 
     // Ambiguous - route to scoping specialist
-    if (message.length < 15) {
+    const isAmbiguous = lowerMessage.length < 35 ||
+        lowerMessage === "help" ||
+        lowerMessage === "what now" ||
+        (lowerMessage.includes("help") && lowerMessage.includes("this"));
+
+    if (isAmbiguous) {
         return {
             routeToAgent: "scopeRequest",
             isTextResponse: false,
-            reasoning: "Request is too short/ambiguous. Routing to Scoping Specialist for clarification.",
+            reasoning: "Request is ambiguous or lacks specific instructions. Routing to Scoping Specialist for clarification.",
             confidence: 0.7
         };
     }

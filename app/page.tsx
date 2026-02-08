@@ -15,7 +15,7 @@ import { DefinitionBank } from "@/components/deal-desk/definition-bank"
 import { DefinitionExplainer } from "@/components/deal-desk/definition-explainer"
 import { ScopingCard } from "@/components/deal-desk/scoping-card"
 import { SmartDraftModal, type DraftData } from "@/components/deal-desk/smart-draft-modal"
-import { useTamboThread } from "@tambo-ai/react"
+import { ContractGeneratingView } from "@/components/deal-desk/contract-generating-view"
 import { Scale, ChevronDown, Share2, Bell, Settings, X } from "lucide-react"
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
@@ -26,6 +26,8 @@ export default function DealDeskPage() {
   const [appState, setAppState] = useState<AppState>('empty')
   const [isDrafting, setIsDrafting] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isContractGenerating, setIsContractGenerating] = useState(false)
+  const [generatingContractType, setGeneratingContractType] = useState<string | null>(null)
   const [isCanvasExpanded, setIsCanvasExpanded] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [draggingComponent, setDraggingComponent] = useState<React.ReactNode>(null)
@@ -61,109 +63,58 @@ export default function DealDeskPage() {
     setIsDrafting(true)
   }
 
-  // Access Tambo thread for AI generation
-  const { sendThreadMessage } = useTamboThread()
-
+  // Direct API call for contract generation (bypasses Maven chat)
   async function handleGenerate(data: DraftData) {
     console.log("Generating contract with:", data)
+
+    // Close modal immediately
+    setIsDrafting(false)
 
     // If form is empty, use boilerplate immediately
     if (data.isEmpty) {
       setDocContent(data.boilerplate)
       setDocFileName("Draft Contract.md")
-      setIsDrafting(false)
       setAppState('active')
       return
     }
 
-    // Otherwise, generate with AI using Tambo
-    setIsGenerating(true)
+    // Show generating animation
+    setIsContractGenerating(true)
+    setGeneratingContractType(data.contractType || 'Contract')
 
     try {
-      // Build the system prompt for contract generation
-      const contractTypeNames: Record<string, string> = {
-        'MSA': 'Master Services Agreement',
-        'NDA': 'Non-Disclosure Agreement',
-        'SOW': 'Statement of Work',
-        'Employment': 'Employment Agreement',
-        'SLA': 'Software License Agreement',
-        'Consulting': 'Consulting Agreement',
-        'Partnership': 'Partnership Agreement',
-        'Lease': 'Lease Agreement'
+      // Call direct API (no Maven/Tambo)
+      const response = await fetch('/api/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`)
       }
 
-      const jurisdictionNames: Record<string, string> = {
-        'US-DE': 'State of Delaware',
-        'US-CA': 'State of California',
-        'US-NY': 'State of New York',
-        'US-TX': 'State of Texas',
-        'UK': 'United Kingdom',
-        'EU': 'European Union',
-        'SG': 'Singapore',
-        'CA-ON': 'Province of Ontario, Canada'
-      }
+      const result = await response.json()
 
-      const prompt = `Generate a formal ${contractTypeNames[data.contractType] || data.contractType} contract in Markdown format.
-
-FORMAT RULES (FOLLOW EXACTLY):
-- Use # for main title (e.g., # MASTER SERVICES AGREEMENT)
-- Use ## for section headers (e.g., ## 1. DEFINITIONS)
-- Use numbered lists (1.1, 1.2) for subsections
-- Use **bold** for defined terms and emphasis
-- Use --- for horizontal rules between major sections
-- End with [Signature blocks to follow]
-
-CONTRACT DETAILS:
-- Contract Type: ${contractTypeNames[data.contractType] || 'Master Services Agreement'}
-- Governing Law: ${jurisdictionNames[data.jurisdiction] || 'State of Delaware'}
-- Party A: ${data.partyA || 'Acme Corporation'}
-- Party B: ${data.partyB || 'TechVentures LLC'}
-- Term Length: ${data.termLength ? data.termLength + ' months' : '12 months'}
-- Liability Cap: ${data.liabilityCap ? '$' + data.liabilityCap : '$50,000'}
-- Payment Terms: ${data.paymentTerms || 'Net 30'}
-
-${data.prompt ? 'SPECIAL INSTRUCTIONS:\n' + data.prompt : ''}
-
-Generate the complete contract now. Output ONLY the markdown content, no explanations.`
-
-      // Send message to Tambo for AI generation
-      const response = await sendThreadMessage(prompt, { streamResponse: true })
-
-      // Extract the generated contract from response
-      // TamboThreadMessage has a content property directly
-      if (response && response.content) {
-        // Content could be string or array of content parts
-        let generatedContent: string
-        if (typeof response.content === 'string') {
-          generatedContent = response.content
-        } else if (Array.isArray(response.content)) {
-          // Extract text from content array
-          generatedContent = response.content
-            .filter((part: any) => part.type === 'text')
-            .map((part: any) => part.text || '')
-            .join('\n')
-        } else {
-          generatedContent = String(response.content)
-        }
-        setDocContent(generatedContent)
+      if (result.contract) {
+        setDocContent(result.contract)
         setDocFileName(`${data.contractType || 'Draft'} Contract.md`)
       } else {
-        // Fallback to boilerplate if something goes wrong
+        // Fallback to boilerplate
         setDocContent(data.boilerplate)
         setDocFileName("Draft Contract.md")
       }
 
-      setIsDrafting(false)
       setAppState('active')
     } catch (error) {
       console.error("Failed to generate contract:", error)
       // Fallback to boilerplate on error
       setDocContent(data.boilerplate)
       setDocFileName("Draft Contract.md")
-      setIsDrafting(false)
       setAppState('active')
     } finally {
-      setIsGenerating(false)
+      setIsContractGenerating(false)
+      setGeneratingContractType(null)
     }
   }
 
@@ -308,9 +259,10 @@ Generate the complete contract now. Output ONLY the markdown content, no explana
             <ResizablePanel defaultSize={50} minSize={35}>
               <div className="h-full overflow-hidden pb-12 relative flex flex-col">
                 <div className="flex-1 overflow-hidden">
-                  {appState === 'empty' && <UploadZone onUpload={handleUpload} onDraft={handleDraft} />}
-                  {appState === 'processing' && <ProcessingView onComplete={handleProcessingComplete} />}
-                  {appState === 'active' && (
+                  {isContractGenerating && <ContractGeneratingView contractType={generatingContractType || undefined} />}
+                  {!isContractGenerating && appState === 'empty' && <UploadZone onUpload={handleUpload} onDraft={handleDraft} />}
+                  {!isContractGenerating && appState === 'processing' && <ProcessingView onComplete={handleProcessingComplete} />}
+                  {!isContractGenerating && appState === 'active' && (
                     <DocumentEditor
                       content={docContent || undefined}
                       fileName={docFileName || undefined}

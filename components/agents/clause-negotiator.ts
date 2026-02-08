@@ -16,13 +16,19 @@ import { ClauseTunerSchema } from "@/components/genui/schemas";
 
 export const ClauseNegotiatorInputSchema = z.object({
     clauseText: z.string().describe("The specific clause text to analyze and tune"),
-    clauseType: z.string().describe("Type of clause, e.g., 'Liability Cap', 'Indemnification'"),
+    clauseType: z.string().describe("Type of clause, e.g., 'Liability Cap', 'Payment Terms'"),
     contractValue: z.number().optional().describe("Total contract value for calculating caps"),
     direction: z.enum(["increase", "decrease", "neutral"]).optional().describe(
         "Direction of negotiation"
     ),
-    targetPosition: z.enum(["Pro-Vendor", "Neutral", "Pro-Client"]).optional().describe(
+    targetPosition: z.enum(["Pro-Vendor", "Neutral", "Pro-Client", "Aggressive", "Balanced", "Conservative"]).optional().describe(
         "Desired negotiation stance"
+    ),
+    partyRole: z.string().optional().describe(
+        "User's party role, e.g., 'Acme (Client)', 'TechVentures (Service Provider)'"
+    ),
+    priority: z.enum(["Low", "Medium", "High", "Critical"]).optional().describe(
+        "Priority level for this negotiation"
     )
 });
 
@@ -135,15 +141,17 @@ function generateAlternatives(
 }
 
 /**
- * Analyze and prepare clause for tuning
+ * Analyze and prepare clause for tuning (dynamic sliders/toggles)
  */
 async function negotiateClause(input: ClauseNegotiatorInput): Promise<ClauseNegotiatorOutput> {
-    const { clauseText, clauseType, contractValue, direction, targetPosition } = input;
+    const { clauseText, clauseType, contractValue, direction, targetPosition, partyRole, priority } = input;
 
     // ⚖️ CLAUSE NEGOTIATOR LOG
     console.log('%c   ⚖️ [Clause Negotiator] Starting negotiation...', 'color: #ec4899');
     console.log('%c      Clause Type:', 'color: #ec4899', clauseType);
-    console.log('%c      Direction:', 'color: #ec4899', direction || 'neutral');
+    console.log('%c      Party Role:', 'color: #ec4899', partyRole || 'unknown');
+    console.log('%c      Stance:', 'color: #ec4899', targetPosition || 'neutral');
+    console.log('%c      Priority:', 'color: #ec4899', priority || 'Medium');
 
     // Extract the current value from the clause
     let currentValue = extractValue(clauseText);
@@ -153,30 +161,142 @@ async function negotiateClause(input: ClauseNegotiatorInput): Promise<ClauseNego
         currentValue = currentValue || contractValue;
     }
 
-    // Determine the current multiplier
-    const template = CLAUSE_TEMPLATES[clauseType as keyof typeof CLAUSE_TEMPLATES];
-    const multiplier = template?.defaultMultiplier || 1.0;
+    // Determine clause-specific configuration
+    const lowerType = clauseType.toLowerCase();
+    const isDaysClause = lowerType.includes("payment") || lowerType.includes("termination") || lowerType.includes("notice");
+    const isCapClause = lowerType.includes("cap") || lowerType.includes("liability") || lowerType.includes("indemnif");
 
-    // Check if mutual
-    const isMutual = isMutualClause(clauseText);
+    // Determine if user is the client (Acme) or service provider (TechVentures)
+    const isClient = partyRole?.toLowerCase().includes("acme") || partyRole?.toLowerCase().includes("client");
+    const isAggressive = targetPosition === "Aggressive" || targetPosition === "Pro-Client";
+    const isConservative = targetPosition === "Conservative" || targetPosition === "Pro-Vendor";
+    const isHighPriority = priority === "High" || priority === "Critical";
 
-    // Generate alternatives
-    const alternatives = generateAlternatives(currentValue, clauseType, direction);
+    // Build dynamic sliders based on clause type
+    const sliders: Array<{
+        id: string;
+        label: string;
+        unit?: string;
+        currentValue: number;
+        min: number;
+        max: number;
+        step: number;
+    }> = [];
 
-    // Adjust based on target position
-    let adjustedMultiplier = multiplier;
-    if (targetPosition === "Pro-Client") {
-        adjustedMultiplier = Math.max(multiplier * 0.8, 0.5);
-    } else if (targetPosition === "Pro-Vendor") {
-        adjustedMultiplier = Math.min(multiplier * 1.2, 5.0);
+    if (isDaysClause) {
+        // Primary: Net Days slider
+        sliders.push({
+            id: "days",
+            label: "Net Days",
+            unit: "days",
+            currentValue: currentValue || 30,
+            min: 15,
+            max: 90,
+            step: 5
+        });
+        // Secondary: Grace Period slider (for aggressive negotiation)
+        if (isAggressive || isHighPriority) {
+            sliders.push({
+                id: "grace",
+                label: "Grace Period",
+                unit: "days",
+                currentValue: 5,
+                min: 0,
+                max: 15,
+                step: 1
+            });
+        }
+    } else if (isCapClause) {
+        // Primary: Cap Amount slider
+        sliders.push({
+            id: "amount",
+            label: "Cap Amount",
+            unit: "$",
+            currentValue: currentValue || 50000,
+            min: 10000,
+            max: 250000,
+            step: 5000
+        });
+        // Secondary: Deductible slider (for high priority or aggressive)
+        if (isAggressive || isHighPriority) {
+            sliders.push({
+                id: "deductible",
+                label: "Deductible",
+                unit: "$",
+                currentValue: 5000,
+                min: 0,
+                max: 25000,
+                step: 1000
+            });
+        }
+    } else {
+        // Generic clause -> value slider
+        sliders.push({
+            id: "value",
+            label: "Value",
+            currentValue: currentValue || 100,
+            min: 0,
+            max: Math.max(currentValue * 3, 1000),
+            step: 1
+        });
     }
+
+    // Build dynamic toggles based on clause type, party role, and stance
+    const toggles: Array<{
+        id: string;
+        label: string;
+        currentValue: boolean;
+        description?: string;
+    }> = [];
+
+    // Toggle 1: Mutual Liability (for cap clauses)
+    if (isCapClause) {
+        toggles.push({
+            id: "mutual",
+            label: "Mutual Liability",
+            currentValue: isMutualClause(clauseText),
+            description: "Both parties will be subject to the same liability cap."
+        });
+    }
+
+    // Toggle 2: Party-specific toggle based on role
+    if (isClient && isCapClause) {
+        toggles.push({
+            id: "carveouts",
+            label: "Include Carve-Outs",
+            currentValue: isAggressive,
+            description: "Excludes gross negligence, fraud, and IP infringement from the cap."
+        });
+    } else if (!isClient && isCapClause) {
+        toggles.push({
+            id: "limitedLiabilityEvents",
+            label: "Limited Liability Events",
+            currentValue: isConservative,
+            description: "Caps apply only to direct damages; excludes consequential damages."
+        });
+    }
+
+    // For days clauses, add late fee toggle
+    if (isDaysClause && isClient) {
+        toggles.push({
+            id: "lateFee",
+            label: "Waive Late Fees",
+            currentValue: isAggressive,
+            description: "Request waiver of late fees for the first 30 days past due."
+        });
+    }
+
+    // Generate context tags
+    const tags: string[] = [];
+    if (partyRole) tags.push(partyRole);
+    if (targetPosition) tags.push(targetPosition);
+    if (priority) tags.push(`${priority} Priority`);
 
     return {
         clauseType,
-        currentValue,
-        multiplier: adjustedMultiplier,
-        isMutual,
-        alternatives
+        sliders,
+        toggles: toggles.length > 0 ? toggles : undefined,
+        tags: tags.length > 0 ? tags : undefined,
     };
 }
 
