@@ -50,7 +50,7 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/desk"
-                className="btn-skeu-dark inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20808D]/40"
+                className="btn-skeu-dark inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20808D]/40"
               >
                 Open Deal Desk
                 <ArrowRight className="h-4 w-4" />
@@ -58,7 +58,7 @@ export default function LandingPage() {
 
               <Link
                 href="/components"
-                className="btn-skeu inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
+                className="btn-skeu inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
               >
                 Browse components
                 <Sparkles className="h-4 w-4" />

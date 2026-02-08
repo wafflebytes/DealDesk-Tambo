@@ -181,8 +181,11 @@ npm install
 Create `.env.local`:
 
 ```
-NEXT_PUBLIC_TAMBO_API_KEY=your_key
-TAMBO_API_KEY=your_key  # optional server-side alias
+TAMBO_API_KEY=your_server_key
+
+# Required for the client-side `TamboProvider`.
+# Only set this if the key is safe to expose in the browser (e.g., a dev/demo key).
+NEXT_PUBLIC_TAMBO_API_KEY=your_client_key
 ```
 
 If you want `/api/draft` and `/api/elicitation` to run against *your* Tambo project, update the `TAMBO_PROJECT_ID` constant in:

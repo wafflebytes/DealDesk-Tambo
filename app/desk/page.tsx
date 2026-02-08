@@ -373,7 +373,7 @@ export default function DealDeskPage() {
                 onClick={() => setFocusedItemId(null)}
                 className="absolute -top-12 right-0 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md text-sm font-medium transition-colors flex items-center gap-2"
               >
-                Close View <X className="w-4 h-4" /> {/* X is probably not imported in page.tsx, need to verify */}
+                Close View <X className="w-4 h-4" />
               </button>
               {/* Render the full-size component */}
               <div className="w-full h-full shadow-2xl rounded-2xl overflow-y-auto custom-scrollbar ring-1 ring-white/20 bg-white">
