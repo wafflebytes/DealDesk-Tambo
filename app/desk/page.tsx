@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
 import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, DragStartEvent, DragEndEvent } from "@dnd-kit/core"
 import { DocumentEditor } from "@/components/deal-desk/document-editor"
 import { TamboChat } from "@/components/deal-desk/tambo-chat"
@@ -51,8 +50,7 @@ This Master Services Agreement (**"Agreement"**) is entered into as of the **Eff
 
 export default function DealDeskPage() {
   const isMobile = useIsMobile()
-  const searchParams = useSearchParams()
-  const demoMode = searchParams.get('demo') === '1'
+  const [demoMode, setDemoMode] = useState(false)
 
   const [appState, setAppState] = useState<AppState>('empty')
   const [isDrafting, setIsDrafting] = useState(false)
@@ -69,6 +67,11 @@ export default function DealDeskPage() {
   const [docFileName, setDocFileName] = useState<string | null>(null)
 
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    setDemoMode(new URLSearchParams(window.location.search).get('demo') === '1')
+  }, [])
 
   useEffect(() => {
     if (!demoMode) return
