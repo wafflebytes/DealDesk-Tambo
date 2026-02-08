@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
-import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2, Github, ChevronDown } from "lucide-react"
+import { Bot, Send, Search, AlertTriangle, FileSearch, Mic, Paperclip, Loader2, Github, ChevronDown, Sliders, BookOpen, CheckSquare } from "lucide-react"
 import { useTamboThread } from "@tambo-ai/react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
@@ -17,9 +17,34 @@ import { ThreadDrawer } from "./thread-drawer"
 import { DealRiskData, ClauseTunerData, ChecklistData, DefinitionBankData, ScopingData } from "@/components/genui/schemas"
 
 const starterPrompts = [
-  { icon: AlertTriangle, label: "Analyze Risk", color: "text-amber-600", bg: "bg-amber-50" },
-  { icon: FileSearch, label: "Find Missing Clauses", color: "text-blue-600", bg: "bg-blue-50" },
-  { icon: Search, label: "Summarize Deal", color: "text-emerald-600", bg: "bg-emerald-50" },
+  {
+    icon: AlertTriangle,
+    label: "Assess risks",
+    message: "Analyze this contract for key legal/commercial risks and show a Risk Radar with the top drivers.",
+    color: "text-amber-600",
+    bg: "bg-amber-50"
+  },
+  {
+    icon: Sliders,
+    label: "Edit a clause",
+    message: "Help me rewrite the limitation of liability clause to be safer for us. Show options and explain tradeoffs.",
+    color: "text-blue-600",
+    bg: "bg-blue-50"
+  },
+  {
+    icon: BookOpen,
+    label: "Explain definitions",
+    message: "Pull out the key defined terms and explain what each one means in plain English.",
+    color: "text-purple-600",
+    bg: "bg-purple-50"
+  },
+  {
+    icon: CheckSquare,
+    label: "Extract obligations",
+    message: "Extract the concrete obligations and deadlines for each party and present them as a checklist.",
+    color: "text-emerald-600",
+    bg: "bg-emerald-50"
+  },
 ]
 
 // Helper to extract text content from message
@@ -756,14 +781,14 @@ export function TamboChat({ appState }: { appState?: 'empty' | 'processing' | 'a
 
             <h3 className="text-stone-900 font-serif text-lg mb-2">Welcome to The Deal Desk</h3>
             <p className="text-sm text-stone-500 mb-8 max-w-xs mx-auto leading-relaxed">
-              I can analyze risks, tune clauses, and summarize terms. Pick a starter to begin.
+              I can assess risk, suggest clause edits, explain definitions, and extract obligations. Pick a starter to begin.
             </p>
 
             <div className="grid grid-cols-1 gap-3 w-full max-w-xs">
               {starterPrompts.map((prompt, index) => (
                 <button
                   key={index}
-                  onClick={() => sendThreadMessage(prompt.label, { streamResponse: true })}
+                  onClick={() => sendThreadMessage(prompt.message, { streamResponse: true })}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl card-skeu hover:translate-y-[-2px] transition-all group text-left"
                 >
                   <div className={`w-8 h-8 rounded-lg ${prompt.bg} inset-skeu flex items-center justify-center group-hover:scale-110 transition-transform`}>

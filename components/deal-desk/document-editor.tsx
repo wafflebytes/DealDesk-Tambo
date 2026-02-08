@@ -245,12 +245,12 @@ export function DocumentEditor({ content, fileName }: DocumentEditorProps) {
     <div className="flex flex-col h-full bg-[#FDFCF8] relative overflow-hidden">
       <EditorContext.Provider value={{ editor }}>
         {/* Main Content Area */}
-        <div className="flex-1 overflow-hidden pt-4 pb-8 flex justify-center">
+        <div className="flex-1 overflow-hidden pt-2 sm:pt-4 pb-6 sm:pb-8 flex justify-center">
           <div className="relative flex flex-col max-w-4xl w-full bg-white rounded-xl shadow-sm ring-1 ring-stone-200/50 h-full overflow-hidden">
 
             {/* In-Editor Rich Text Toolbar (Tiptap Style) */}
             {!diffMode && (
-              <Toolbar className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-100 px-6 h-12 shrink-0 w-full">
+              <Toolbar className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-100 px-3 sm:px-6 h-12 shrink-0 w-full overflow-x-auto">
                 <ToolbarGroup>
                   <UndoRedoButton action="undo" />
                   <UndoRedoButton action="redo" />
@@ -280,20 +280,22 @@ export function DocumentEditor({ content, fileName }: DocumentEditorProps) {
             {/* Scrollable Document Area */}
             <div className="flex-1 flex min-h-0 overflow-hidden">
               {/* Tiptap Integration - Gutter */}
-              <div ref={gutterRef} className="w-14 bg-stone-50/80 border-r border-stone-100 flex flex-col pt-12 select-none overflow-hidden shrink-0">
-                {Array.from({ length: Math.max(40, lineCount + 10) }).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => toggleBookmark(i)}
-                    className="h-7 w-full flex items-center justify-end pr-4 group/gutter relative outline-none"
-                  >
-                    <span className={`font-mono text-[10px] transition-colors ${bookmarks.includes(i) ? 'text-amber-500 font-bold' : 'text-stone-300 group-hover:text-stone-400'}`}>
-                      {i + 1}
-                    </span>
-                    {bookmarks.includes(i) && <Bookmark className="absolute top-1/2 -translate-y-1/2 -right-0.5 w-2.5 h-2.5 text-amber-500 fill-amber-500" />}
-                  </button>
-                ))}
-              </div>
+              {!isMobile && (
+                <div ref={gutterRef} className="w-14 bg-stone-50/80 border-r border-stone-100 flex flex-col pt-12 select-none overflow-hidden shrink-0">
+                  {Array.from({ length: Math.max(40, lineCount + 10) }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => toggleBookmark(i)}
+                      className="h-7 w-full flex items-center justify-end pr-4 group/gutter relative outline-none"
+                    >
+                      <span className={`font-mono text-[10px] transition-colors ${bookmarks.includes(i) ? 'text-amber-500 font-bold' : 'text-stone-300 group-hover:text-stone-400'}`}>
+                        {i + 1}
+                      </span>
+                      {bookmarks.includes(i) && <Bookmark className="absolute top-1/2 -translate-y-1/2 -right-0.5 w-2.5 h-2.5 text-amber-500 fill-amber-500" />}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Tiptap Integration - Editor Wrapper */}
               <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -313,7 +315,7 @@ export function DocumentEditor({ content, fileName }: DocumentEditorProps) {
                 )}
 
                 <div
-                  className="flex-1 p-12 overflow-auto transition-all duration-300 scroll-smooth"
+                  className="flex-1 p-5 sm:p-8 lg:p-12 overflow-auto transition-all duration-300 scroll-smooth"
                   style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}
                   onScroll={handleScroll}
                 >

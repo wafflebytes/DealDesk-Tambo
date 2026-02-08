@@ -15,14 +15,14 @@ import { BrainCircuit, Layers, ShieldAlert, Sliders, CheckSquare, BookOpen, Sear
 
 export default function ComponentGallery() {
     return (
-        <div className="min-h-screen bg-[#f4fafa] p-8 md:p-12">
+        <div className="min-h-screen bg-[#f4fafa] p-4 sm:p-8 md:p-12">
             <div className="max-w-6xl mx-auto">
                 <header className="mb-12">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 rounded-xl bg-[#20808D] flex items-center justify-center shadow-lg shadow-[#20808D]/20">
                             <Layers className="text-white w-6 h-6" />
                         </div>
-                        <h1 className="text-3xl font-serif font-bold text-stone-900">GenUI Gallery</h1>
+                        <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">GenUI Gallery</h1>
                     </div>
                     <p className="text-stone-500 max-w-2xl font-medium">
                         Explore and interact with the intelligence components that power the Deal Desk experience.
@@ -46,7 +46,7 @@ export default function ComponentGallery() {
                     <section className="space-y-4">
                         <div className="flex items-center gap-2 px-1 text-blue-600">
                             <Sliders className="w-5 h-5" />
-                            <h2 className="font-bold uppercase tracking-wider text-xs">Clause Tuning</h2>
+                            <h2 className="font-bold uppercase tracking-wider text-xs">Clause Editing</h2>
                         </div>
                         <div className="card-skeu p-6 rounded-3xl bg-white border border-stone-200">
                             <ClauseTuner />
