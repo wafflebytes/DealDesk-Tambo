@@ -14,8 +14,11 @@ export default function LandingPage() {
       <main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-6 py-14">
         {/* Mark */}
         <div className="flex items-center gap-3 animate-in fade-in duration-500">
-          <div className="knob-skeu flex h-11 w-11 items-center justify-center rounded-2xl">
-            <Scale className="h-5 w-5 text-[#20808D]" strokeWidth={2} />
+          <div className="knob-skeu flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm">
+            <Scale
+              className="relative z-10 h-6 w-6 text-[#165a63] drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]"
+              strokeWidth={1.8}
+            />
           </div>
 
           <div className="leading-none">
@@ -56,13 +59,7 @@ export default function LandingPage() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
 
-              <Link
-                href="/components"
-                className="btn-skeu inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
-              >
-                Browse components
-                <Sparkles className="h-4 w-4" />
-              </Link>
+
             </div>
 
             <div className="mt-10 flex flex-wrap gap-2 text-xs font-medium text-stone-600">

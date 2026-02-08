@@ -73,7 +73,36 @@ export function CanvasPane({
     // Check if the click target is an interactive element
     // We want to allow interaction with buttons/inputs without triggering the "Focus Mode"
     const target = e.target as HTMLElement
-    const isInteractive = target.closest('button, input, select, textarea, a, [role="button"], [role="checkbox"], [role="menuitem"], label')
+
+    // Comprehensive list of interactive elements and their common implementations
+    const interactiveSelectors = [
+      'button',
+      'input',
+      'select',
+      'textarea',
+      'a',
+      '[role="button"]',
+      '[role="checkbox"]',
+      '[role="menuitem"]',
+      '[role="slider"]',
+      '[role="switch"]',
+      '[role="combobox"]',
+      '[role="listbox"]',
+      '[role="option"]',
+      '[role="tab"]',
+      '[role="radio"]',
+      '[role="spinbutton"]',
+      '[tabindex]:not([tabindex="-1"])',
+      'label',
+      // Radix UI specific data attributes
+      '[data-radix-collection-item]',
+      '[data-state]', // Radix toggles, checkboxes, etc.
+      // Common interactive class patterns
+      '.cursor-pointer',
+      '[data-clickable="true"]',
+    ].join(', ')
+
+    const isInteractive = target.closest(interactiveSelectors)
 
     if (isInteractive) {
       return
