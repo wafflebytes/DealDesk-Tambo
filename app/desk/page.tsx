@@ -15,6 +15,7 @@ import { DefinitionExplainer } from "@/components/deal-desk/definition-explainer
 import { ScopingCard } from "@/components/deal-desk/scoping-card"
 import { SmartDraftModal, type DraftData } from "@/components/deal-desk/smart-draft-modal"
 import { ContractGeneratingView } from "@/components/deal-desk/contract-generating-view"
+import { WelcomeModal } from "@/components/deal-desk/welcome-modal"
 import { Scale, ChevronDown, Share2, Bell, Settings, X } from "lucide-react"
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
@@ -356,6 +357,7 @@ export default function DealDeskPage() {
           onDraft={handleGenerate}
         />
       )}
+      <WelcomeModal />
     </DndContext>
   )
 }
