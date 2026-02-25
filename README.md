@@ -4,7 +4,7 @@
 
 An AI-native contract workspace where the UI adapts to what you're trying to do: assess risk, refine clauses, clarify definitions, and track obligations.
 
-Unlike traditional legal platforms that force you into rigid dashboards and fixed workflows, The Deal Desk flips the paradigm. You drop in a contract, ask what you need in natural language, and the interface reshapes itself around your job to be done — surfacing the right interactive tool at the right time.
+Unlike traditional legal platforms that force you into rigid dashboards and fixed workflows, The Deal Desk flips the paradigm. You drop in a contract, ask what you need in natural language, and the interface reshapes itself around your job to be done — surfacing the right interactive tool at the right time. The Deal Desk makes contracts readable for non-lawyers. Because navigating legalese shouldn't be the hardest part of your job.
 
 **[Live Website](https://deal-desk-tambo.vercel.app/)** · **[Watch Demo](https://youtu.be/V0RTi8uorJM)** · **[Source Code](https://github.com/wafflebytes/DealDesk-Tambo)**
 
