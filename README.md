@@ -1,145 +1,186 @@
 # The Deal Desk
 
-An AI-native contract workspace where the UI adapts to what you’re trying to do: assess risk, refine clauses, clarify definitions, and track obligations.
+**Winner — Tambo "UI Strikes Back" Hackathon**
 
-This project is *not* the stock Tambo template UI. We built a fully custom product surface (skeuomorphic “desk” + editor + chat + draggable GenUI canvas) and wired Tambo’s generative UI primitives into it.
+An AI-native contract workspace where the UI adapts to what you're trying to do: assess risk, refine clauses, clarify definitions, and track obligations.
 
-## Screenshots
+Unlike traditional legal platforms that force you into rigid dashboards and fixed workflows, The Deal Desk flips the paradigm. You drop in a contract, ask what you need in natural language, and the interface reshapes itself around your job to be done — surfacing the right interactive tool at the right time.
 
-Landing (desktop)
+**[Live Website](https://deal-desk-tambo.vercel.app/)** · **[Watch Demo](https://youtu.be/V0RTi8uorJM)** · **[Source Code](https://github.com/wafflebytes/DealDesk-Tambo)**
 
-![Landing page (desktop)](docs/screenshots/landing-desktop.png)
+---
 
-Deal Desk (desktop)
+## See it in Action
 
-![Deal Desk (desktop)](docs/screenshots/desk-desktop.png)
+[![Deal Desk Demo](https://img.youtube.com/vi/V0RTi8uorJM/maxresdefault.jpg)](https://youtu.be/V0RTi8uorJM)
 
-Deal Desk (mobile)
+*Click the image above to watch the full demo video on YouTube.*
 
-![Deal Desk (mobile)](docs/screenshots/desk-mobile.png)
+### Screenshots
 
-## Why this matters (judging criteria framing)
+| Landing Page | Workspace |
+| :---: | :---: |
+| ![Landing](docs/screenshots/landing-desktop.png) | ![Workspace](docs/screenshots/desk-desktop.png) |
 
-### Potential impact
+---
 
-Most contract tools force you through a dashboard and a fixed workflow. The Deal Desk flips that: you drop in a contract, ask what you need, and the interface reshapes itself around the job (risk, negotiation, obligations, definitions).
+## Key Features
 
-### Creativity + originality
+This project goes beyond "chat on the side". Tambo serves as the control plane for the entire workspace — the AI doesn't just answer, it builds the interface.
 
-Instead of returning text-only answers, Maven responds with purpose-built *interactive* components (GenUI) that you can drag onto a canvas and keep around as you work.
+- **Drag-and-Drop GenUI Canvas** — The AI responds with purpose-built interactive components instead of text. Drag them onto a persistent canvas, rearrange freely, and keep them around as you work through the contract.
 
-### Learning + growth
+- **Skeuomorphic Workspace Design** — The desk is designed to feel physical and calm: layered paper textures, soft gradients, and tactile controls. Every interaction has weight.
 
-This codebase explores Tambo’s generative UI model (registered components + tools + streaming) and pairs it with a custom interaction model: a TipTap editor, resizable panes, DnD-driven “analysis canvas”, and elicitation cards for ambiguous requests.
+- **Rich Contract Editor** — A full TipTap-based editor with real-time context awareness. Select a clause, and the AI understands exactly what you're looking at.
 
-### Technical implementation
+- **Multi-Agent Orchestration** — Behind a single chat input, a coordinator routes requests to five specialized agents. Each one returns typed, schema-validated data that maps directly to a UI component.
 
-Key building blocks:
+- **Elicitation UI** — When a request is ambiguous, the AI doesn't guess. It surfaces a structured clarification card (choice selection, form input, or confirmation dialog) to collect what it needs before proceeding.
 
-1. **Next.js App Router UI**
-   - Landing: `app/page.tsx`
-   - Workspace: `app/desk/page.tsx`
+- **Resizable, Responsive Layout** — Editor, chat, and canvas panels resize fluidly. The entire product remains usable on mobile.
 
-2. **Tambo Provider + Registry**
-   - `components/providers/tambo-wrapper.tsx` registers GenUI components + tools.
+---
 
-3. **Multi-agent orchestration (via Tools)**
-   - `components/agents/coordinator.ts` routes each request to a specialized tool.
+## Architecture
 
-4. **Context-aware contract understanding**
-   - `components/deal-desk/document-editor.tsx` attaches the active document (and selection) via `useTamboContextHelpers()`.
-
-### Aesthetics + UX
-
-The workspace is designed to feel tactile and calm (skeuomorphic controls, layered paper, soft gradients). The full frontend is responsive so it remains usable on mobile.
-
-### Best use of Tambo
-
-Tambo isn’t bolted on as “chat on the side”. It’s the control plane for the UI:
-
-- You ask in natural language.
-- Tambo selects and hydrates the best component.
-- The component becomes the response.
-
-## Architecture (how it works)
-
-### High-level request flow
+At its core, The Deal Desk uses a multi-agent routing system paired with strongly typed generative components. Every user message flows through a single orchestration pipeline.
 
 ```
-User
-  ↓
-Chat UI (`components/deal-desk/tambo-chat.tsx`)
-  ↓  useTamboThread().sendThreadMessage()
-Tambo
-  ↓  tool_calls
-Coordinator tool (`components/agents/coordinator.ts`)
-  ↓  routes to a specialized tool
-Risk Analyst | Clause Negotiator | Definition Curator | Obligation Extractor | Scoping Specialist
-  ↓
-Returns typed props (Zod schemas)
-  ↓
-GenUI component renders (RiskRadar / ClauseTuner / DefinitionBank / ExtractionChecklist / ScopingCard)
+User prompt
+  → Chat UI (useTamboThread)
+    → Tambo orchestration layer
+      → Coordinator tool (classifies intent, routes to sub-agent)
+        → Risk Analyst / Clause Negotiator / Definition Curator /
+           Obligation Extractor / Scoping Specialist
+          → Returns typed props validated against Zod schema
+            → GenUI component renders in the workspace
 ```
 
-### Generative UI components (registered with schemas)
+### Specialized Agents
 
-Registered in `components/providers/tambo-wrapper.tsx`:
+The coordinator (`components/agents/coordinator.ts`) classifies each user query with keyword matching and confidence scoring, then delegates to the right sub-agent:
 
-- `RiskRadar` (radar visualization of category risk)
-- `ClauseTuner` (interactive clause refinement controls)
-- `ExtractionChecklist` (obligations/action items list)
-- `KnowledgeBank` (definitions glossary)
-- `ScopingCard` (elicitation UI for ambiguity and parameter collection)
+| Agent | Role | Output Component |
+|---|---|---|
+| **Risk Analyst** | Scores contract risk across Liability, IP, Term, Payment, Confidentiality | `RiskRadar` |
+| **Clause Negotiator** | Generates interactive sliders and toggles for clause parameter tuning | `ClauseTuner` |
+| **Obligation Extractor** | Pulls out duties, deadlines, and action items with priority levels | `ExtractionChecklist` |
+| **Definition Curator** | Extracts and organizes defined terms into a searchable glossary | `KnowledgeBank` |
+| **Scoping Specialist** | Surfaces clarification UI when the user's request is ambiguous | `ScopingCard` |
 
-Each component is paired with a Zod `propsSchema` (see `components/genui/schemas.ts`) so the AI output stays type-safe.
+### Generative UI Components
 
-## Tambo features used (explicit)
+Each component is registered with Tambo alongside a Zod `propsSchema`, ensuring that every AI-generated response is fully type-safe. The schemas live in `components/genui/schemas.ts`.
 
-- `TamboProvider` (component + tool registry) in `components/providers/tambo-wrapper.tsx`
-- `useTamboThread()` in `components/deal-desk/tambo-chat.tsx` for streaming chat + message send
-- `useTamboThreadList()` in `components/deal-desk/thread-drawer.tsx` for thread browsing
-- `useTamboComponentState()` in multiple GenUI components for persistent UI state
-- `useTamboContextHelpers()` in `components/deal-desk/document-editor.tsx` to attach the active contract + selected text
-- Tooling + schemas: tools implement `TamboTool` and validate inputs/outputs with Zod
+| Component | Schema | What it renders |
+|---|---|---|
+| `RiskRadar` | `DealRiskSchema` | Radar chart of 5 risk dimensions (0–1 scores) with follow-up suggestions |
+| `ClauseTuner` | `ClauseTunerSchema` | 1–3 sliders + 0–2 toggles for adjusting clause parameters (caps, days, mutual liability) |
+| `ExtractionChecklist` | `ChecklistSchema` | Priority-tagged task list with source references (e.g. "Section 4.1") |
+| `KnowledgeBank` | `DefinitionBankSchema` | Searchable grid of defined terms with tags |
+| `ScopingCard` | `ScopingSchema` | Three variants — `v1` (enum choice), `v2` (form input), `v3` (destructive confirm) |
 
-## What we’d add next (future scope)
+---
 
-Areas where we can go deeper on Tambo:
+## Tambo Integration
 
-1. *Interactables*: use `withInteractable` / `useTamboInteractable` so the model can directly “see” and operate on on-screen UI controls (not just render components).
-2. *Suggestions*: add contextual next-step suggestions via `useTamboSuggestions()` (e.g., “Check assignment clause”, “Extract renewal dates”).
-3. *Richer sampling + routing*: experiment with different tool routing strategies and model settings for more reliable component selection.
-4. *Voice*: try `useTamboVoice()` for hands-free review on mobile.
-5. *MCP*: connect external sources (e.g., clause library, playbooks, approval rules) through MCP servers.
+Tambo is deeply wired into every layer. This is not a wrapper — it is the runtime that powers the product.
 
-## Running locally
+| Tambo Primitive | Where it's used | Purpose |
+|---|---|---|
+| `TamboProvider` | `components/providers/tambo-wrapper.tsx` | Registers all components, tools, and the system prompt for Maven |
+| `useTamboThread()` | `components/deal-desk/tambo-chat.tsx` | Streaming chat, message dispatch, and response handling |
+| `useTamboThreadList()` | `components/deal-desk/thread-drawer.tsx` | Thread history, switching between conversations |
+| `useTamboComponentState()` | All GenUI components | Persistent UI state across re-renders and sessions |
+| `useTamboContextHelpers()` | `components/deal-desk/document-editor.tsx` | Attaches active document text and user selection as context |
+| `TamboTool` + Zod | All agent files in `components/agents/` | Typed tool definitions with validated input/output schemas |
 
-### Prereqs
+### System prompt
+
+Maven, the AI persona powering the workspace, operates under strict constraints:
+- When rendering a component, output zero text. The component *is* the response.
+- No markdown formatting. Plain text only when text is necessary.
+- Maximum 30 words for any text-only reply. Most responses are 0 words.
+
+---
+
+## Project Structure
+
+```
+app/
+  page.tsx                          # Landing page
+  desk/page.tsx                     # Workspace
+
+components/
+  providers/
+    tambo-wrapper.tsx               # TamboProvider setup, component + tool registry
+
+  agents/
+    coordinator.ts                  # Intent classifier + orchestrator (called first)
+    risk-analyst.ts                 # Risk scoring agent
+    clause-negotiator.ts            # Clause parameter tuning agent
+    definition-curator.ts           # Term extraction agent
+    obligation-extractor.ts         # Obligation/task extraction agent
+    scoping-specialist.ts           # Elicitation/clarification agent
+
+  deal-desk/
+    tambo-chat.tsx                  # Chat panel (useTamboThread)
+    document-editor.tsx             # TipTap editor + context attachment
+    canvas-pane.tsx                 # Draggable GenUI canvas
+    risk-radar.tsx                  # RiskRadar component
+    clause-tuner.tsx                # ClauseTuner component
+    extraction-checklist.tsx        # ExtractionChecklist component
+    definition-bank.tsx             # KnowledgeBank component
+    scoping-card.tsx                # ScopingCard component (3 variants)
+    thread-drawer.tsx               # Thread history sidebar
+
+  genui/
+    schemas.ts                      # Zod schemas for all GenUI props
+```
+
+---
+
+## Future Work
+
+Directions we'd explore next:
+
+- **Interactables** — Use `withInteractable` / `useTamboInteractable` so the model can observe and manipulate on-screen controls directly, not just render new components.
+- **Suggestions** — Surface contextual next steps via `useTamboSuggestions()` (e.g. "Check assignment clause", "Extract renewal dates").
+- **Voice input** — Enable hands-free contract review on mobile with `useTamboVoice()`.
+- **MCP integration** — Connect clause libraries, negotiation playbooks, and approval rules through MCP servers.
+- **Routing improvements** — Experiment with model-based intent classification and confidence thresholds for more reliable component selection.
+
+---
+
+## Getting Started
+
+### Prerequisites
 
 - Node.js 18+
-- A Tambo API key
+- A [Tambo API key](https://tambo.ai)
 
-### Setup
+### Install
 
-1. Install deps:
-
-```
+```bash
 npm install
 ```
 
-2. Add env vars:
+### Configure
+
+Create a `.env.local` file in the project root:
 
 ```
 NEXT_PUBLIC_TAMBO_API_KEY=your_key_here
 ```
 
-3. Start the dev server:
+### Run
 
-```
+```bash
 npm run dev
 ```
 
-Open:
+Open your browser:
 
-- `http://localhost:3000/` (landing)
-- `http://localhost:3000/desk` (workspace)
+- **Landing** — [http://localhost:3000](http://localhost:3000)
+- **Workspace** — [http://localhost:3000/desk](http://localhost:3000/desk)
