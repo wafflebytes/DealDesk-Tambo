@@ -10,11 +10,8 @@ Unlike traditional legal platforms that force you into rigid dashboards and fixe
 
 ---
 
-## See it in Action
-
 [![Deal Desk Demo](https://img.youtube.com/vi/V0RTi8uorJM/maxresdefault.jpg)](https://youtu.be/V0RTi8uorJM)
 
-*Click the image above to watch the full demo video on YouTube.*
 
 ### Screenshots
 
